@@ -1,69 +1,267 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type LoginRole = "admin" | "student";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const [role, setRole] = useState<LoginRole>("admin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    const { data, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+    if (signInError || !data.user) {
+      setError("Invalid email or password.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("role, is_active")
+      .eq("id", data.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      await supabase.auth.signOut();
+      setError("Your LearnBoard profile could not be found.");
+      setLoading(false);
+      return;
+    }
+
+    if (!profile.is_active) {
+      await supabase.auth.signOut();
+      setError("This LearnBoard account is inactive.");
+      setLoading(false);
+      return;
+    }
+
+    if (profile.role !== role) {
+      await supabase.auth.signOut();
+
+      setError(
+        role === "admin"
+          ? "This account does not have Administrator access."
+          : "This account does not have Student access."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    if (profile.role === "admin") {
+      router.push("/admin");
+    } else {
+      router.push("/student");
+    }
+
+    router.refresh();
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl grid md:grid-cols-2">
+
+        {/* LEFT SIDE */}
+        <section className="hidden md:flex min-h-[650px] flex-col justify-between bg-slate-900 p-12 text-white">
+          <div>
+            <div className="text-3xl font-bold">
+              LearnBoard
+            </div>
+
+            <p className="mt-2 text-slate-300">
+              eLearning Platform
+            </p>
+          </div>
+
+          <div>
+            <h1 className="text-4xl font-semibold leading-tight">
+              Learn. Play.
+              <br />
+              Grow.
+            </h1>
+
+            <p className="mt-5 max-w-sm text-slate-300 leading-7">
+              Interactive learning experiences, SCORM games,
+              assignments and progress tracking in one place.
+            </p>
+          </div>
+
+          <p className="text-sm text-slate-400">
+            LearnBoard Learning Management System
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </section>
+
+        {/* LOGIN SIDE */}
+        <section className="flex min-h-[650px] items-center p-8 md:p-14">
+          <div className="w-full">
+
+            <div className="mb-10 md:hidden">
+              <div className="text-3xl font-bold text-slate-900">
+                LearnBoard
+              </div>
+
+              <p className="text-slate-500">
+                eLearning Platform
+              </p>
+            </div>
+
+            <h2 className="text-3xl font-bold text-slate-900">
+              Welcome back
+            </h2>
+
+            <p className="mt-2 text-slate-500">
+              Sign in to continue to LearnBoard.
+            </p>
+
+            {/* ROLE SELECTOR */}
+            <div className="mt-8 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRole("admin");
+                  setError("");
+                }}
+                className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                  role === "admin"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500"
+                }`}
+              >
+                Administrator
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRole("student");
+                  setError("");
+                }}
+                className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                  role === "student"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500"
+                }`}
+              >
+                Student
+              </button>
+
+            </div>
+
+            {/* LOGIN FORM */}
+            <form
+              onSubmit={handleLogin}
+              className="mt-8 space-y-5"
+            >
+
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Email address
+                </label>
+
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) =>
+                    setEmail(event.target.value)
+                  }
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Password
+                </label>
+
+                <div className="relative">
+
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(event.target.value)
+                    }
+                    placeholder="Enter your password"
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 pr-20 text-slate-900 outline-none transition focus:border-slate-900"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500"
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+
+                </div>
+              </div>
+
+              {/* ERROR MESSAGE */}
+              {error && (
+                <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
+              {/* LOGIN BUTTON */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading
+                  ? "Signing in..."
+                  : role === "admin"
+                  ? "Login as Administrator"
+                  : "Login as Student"}
+              </button>
+
+            </form>
+
+            <p className="mt-8 text-center text-xs text-slate-400">
+              Secure access powered by LearnBoard
+            </p>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
   );
 }
