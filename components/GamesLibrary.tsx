@@ -291,7 +291,7 @@ export default function GamesLibrary({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredGames.map(
             (game) => (
               <GameCard
@@ -354,7 +354,7 @@ function GameCard({
       href={`/admin/games/${game.id}`}
       className="group overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#CDD5E4] hover:shadow-md"
     >
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#EEF0FF]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#EEF0FF]">
         {game.image_path ? (
           <img
             src={getGameImageUrl(
@@ -365,7 +365,7 @@ function GameCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/80 text-[#6366F1] shadow-sm">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/80 text-[#6366F1] shadow-sm">
               <GameIcon />
             </div>
           </div>
