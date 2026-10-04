@@ -16,30 +16,74 @@ export default async function UsersPage() {
 
   const { data: currentProfile } = await supabase
     .from("profiles")
-    .select("role, is_active")
+    .select("role, is_active, school_id")
     .eq("id", user.id)
     .single();
+
+  const isSuperAdmin =
+    currentProfile?.role === "super_admin";
+
+  const isSchoolAdmin =
+    currentProfile?.role === "admin";
 
   if (
     !currentProfile ||
     !currentProfile.is_active ||
-    currentProfile.role !== "admin"
+    (!isSuperAdmin && !isSchoolAdmin)
   ) {
     redirect("/");
   }
 
+  /*
+   * Super Admin:
+   * RLS allows access to users across all schools.
+   *
+   * School Admin:
+   * RLS limits access to users belonging
+   * to the administrator's own school.
+   */
   const { data: users, error } = await supabase
     .from("profiles")
-    .select("id, full_name, email, role, is_active, created_at")
-    .order("created_at", { ascending: false });
+    .select(
+      "id, full_name, email, role, is_active, school_id, created_at"
+    )
+    .order("created_at", {
+      ascending: false,
+    });
 
-  const totalUsers = users?.length ?? 0;
+  /*
+   * Super Admin needs the school list for:
+   * - Creating users
+   * - Displaying school names
+   *
+   * School Admin does not need to select a school.
+   */
+  const { data: schools } = isSuperAdmin
+    ? await supabase
+        .from("schools")
+        .select("id, name, code, is_active")
+        .order("name", {
+          ascending: true,
+        })
+    : {
+        data: [],
+      };
+
+  const totalUsers =
+    users?.length ?? 0;
 
   const totalStudents =
-    users?.filter((item) => item.role === "student").length ?? 0;
+    users?.filter(
+      (item) =>
+        item.role === "student"
+    ).length ?? 0;
 
   const totalAdmins =
-    users?.filter((item) => item.role === "admin").length ?? 0;
+    users?.filter(
+      (item) =>
+        item.role === "admin" ||
+        item.role === "super_admin"
+    ).length ?? 0;
 
   return (
     <main className="p-8 lg:p-10">
@@ -47,6 +91,7 @@ export default async function UsersPage() {
 
         {/* Page header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
           <div>
             <p className="text-sm font-semibold text-slate-500">
               USER MANAGEMENT
@@ -57,15 +102,22 @@ export default async function UsersPage() {
             </h1>
 
             <p className="mt-2 text-slate-500">
-              Manage LearnBoard administrators and students.
+              {isSuperAdmin
+                ? "Manage administrators and students across LearnBoard schools."
+                : "Manage administrators and students in your school."}
             </p>
           </div>
 
-          <AddUserForm />
+          <AddUserForm
+            isSuperAdmin={isSuperAdmin}
+            schools={schools ?? []}
+          />
+
         </div>
 
         {/* Statistics */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
+
           <StatCard
             label="Total Users"
             value={totalUsers}
@@ -80,6 +132,7 @@ export default async function UsersPage() {
             label="Administrators"
             value={totalAdmins}
           />
+
         </div>
 
         {/* Users table */}
@@ -89,9 +142,10 @@ export default async function UsersPage() {
           </div>
         ) : (
           <UsersTable
- 		users={users ?? []}
-  		currentUserId={user.id}
-	/>
+            users={users ?? []}
+            currentUserId={user.id}
+            schools={schools ?? []}
+          />
         )}
 
       </div>
@@ -108,6 +162,7 @@ function StatCard({
 }) {
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm">
+
       <p className="text-sm font-medium text-slate-500">
         {label}
       </p>
@@ -115,6 +170,7 @@ function StatCard({
       <p className="mt-2 text-3xl font-bold text-slate-900">
         {value}
       </p>
+
     </div>
   );
 }

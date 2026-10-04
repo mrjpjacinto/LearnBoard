@@ -4,7 +4,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   try {
-    // Check who is making the request.
     const supabase = await createClient();
 
     const {
@@ -18,20 +17,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // Confirm the logged-in user is an active administrator.
+    /*
+     * Determine who is making the request.
+     */
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role, is_active")
+      .select("role, is_active, school_id")
       .eq("id", user.id)
       .single();
 
+    const isSuperAdmin =
+      profile?.role === "super_admin";
+
+    const isSchoolAdmin =
+      profile?.role === "admin";
+
     if (
       !profile ||
-      profile.role !== "admin" ||
-      !profile.is_active
+      !profile.is_active ||
+      (!isSuperAdmin && !isSchoolAdmin)
     ) {
       return NextResponse.json(
-        { error: "Administrator access is required." },
+        {
+          error:
+            "Administrator access is required.",
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
+     * A School Admin must belong to a school.
+     */
+    if (
+      isSchoolAdmin &&
+      !profile.school_id
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Your administrator account is not assigned to a school.",
+        },
         { status: 403 }
       );
     }
@@ -53,34 +79,139 @@ export async function POST(request: Request) {
         ? body.password
         : "";
 
+    /*
+     * Only these roles can be created here.
+     *
+     * Never accept super_admin from the browser.
+     */
     const role =
-      body.role === "admin" ? "admin" : "student";
+      body.role === "admin"
+        ? "admin"
+        : "student";
+
+    const requestedSchoolId =
+      typeof body.schoolId === "string"
+        ? body.schoolId.trim()
+        : "";
 
     if (!fullName) {
       return NextResponse.json(
-        { error: "Full name is required." },
+        {
+          error:
+            "Full name is required.",
+        },
         { status: 400 }
       );
     }
 
     if (!email) {
       return NextResponse.json(
-        { error: "Email is required." },
+        {
+          error:
+            "Email is required.",
+        },
         { status: 400 }
       );
     }
 
     if (password.length < 8) {
       return NextResponse.json(
-        { error: "Password must be at least 8 characters." },
+        {
+          error:
+            "Password must be at least 8 characters.",
+        },
         { status: 400 }
       );
     }
 
-    const adminSupabase = createAdminClient();
+    const adminSupabase =
+      createAdminClient();
 
-    // Create the actual Supabase Auth user.
-    const { data: createdUser, error: createError } =
+    /*
+     * Decide the destination school on the server.
+     *
+     * Super Admin:
+     * Uses the selected school.
+     *
+     * School Admin:
+     * Browser choice is ignored completely.
+     * Their own school is always used.
+     */
+    let destinationSchoolId: string;
+
+    if (isSuperAdmin) {
+      if (!requestedSchoolId) {
+        return NextResponse.json(
+          {
+            error:
+              "Please select a school.",
+          },
+          { status: 400 }
+        );
+      }
+
+      destinationSchoolId =
+        requestedSchoolId;
+    } else {
+      destinationSchoolId =
+        profile.school_id as string;
+    }
+
+    /*
+     * Verify that the destination school
+     * really exists and is active.
+     */
+    const {
+      data: destinationSchool,
+      error: schoolError,
+    } = await adminSupabase
+      .from("schools")
+      .select("id, name, is_active")
+      .eq("id", destinationSchoolId)
+      .maybeSingle();
+
+    if (schoolError) {
+      console.error(
+        "School lookup error:",
+        schoolError
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            "Unable to verify the selected school.",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!destinationSchool) {
+      return NextResponse.json(
+        {
+          error:
+            "The selected school does not exist.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!destinationSchool.is_active) {
+      return NextResponse.json(
+        {
+          error:
+            "Users cannot be added to an inactive school.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+     * Create the Supabase Auth account.
+     */
+    const {
+      data: createdUser,
+      error: createError,
+    } =
       await adminSupabase.auth.admin.createUser({
         email,
         password,
@@ -90,7 +221,10 @@ export async function POST(request: Request) {
         },
       });
 
-    if (createError || !createdUser.user) {
+    if (
+      createError ||
+      !createdUser.user
+    ) {
       return NextResponse.json(
         {
           error:
@@ -101,22 +235,39 @@ export async function POST(request: Request) {
       );
     }
 
-    // Our auth trigger creates the profile.
-    // Update it with the administrator's selected values.
-    const { error: profileError } = await adminSupabase
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        email,
-        role,
-        is_active: true,
-      })
-      .eq("id", createdUser.user.id);
+    /*
+     * The auth trigger creates the profile.
+     * Update that profile with LearnBoard's
+     * role and school information.
+     */
+    const { error: profileError } =
+      await adminSupabase
+        .from("profiles")
+        .update({
+          full_name: fullName,
+          email,
+          role,
+          school_id:
+            destinationSchoolId,
+          is_active: true,
+        })
+        .eq(
+          "id",
+          createdUser.user.id
+        );
 
     if (profileError) {
-      // Avoid leaving behind an incomplete Auth user.
+      /*
+       * Avoid leaving an incomplete
+       * authentication account behind.
+       */
       await adminSupabase.auth.admin.deleteUser(
         createdUser.user.id
+      );
+
+      console.error(
+        "Profile update error:",
+        profileError
       );
 
       return NextResponse.json(
@@ -128,18 +279,32 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: createdUser.user.id,
-        fullName,
-        email,
-        role,
-      },
-    });
-  } catch {
     return NextResponse.json(
-      { error: "An unexpected server error occurred." },
+      {
+        success: true,
+
+        user: {
+          id: createdUser.user.id,
+          fullName,
+          email,
+          role,
+          schoolId:
+            destinationSchoolId,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error(
+      "Create user API error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "An unexpected server error occurred.",
+      },
       { status: 500 }
     );
   }

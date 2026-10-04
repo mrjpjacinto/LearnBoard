@@ -17,7 +17,9 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError("");
@@ -35,40 +37,83 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role, is_active")
-      .eq("id", data.user.id)
-      .single();
+    const { data: profile, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("role, is_active, school_id")
+        .eq("id", data.user.id)
+        .single();
 
     if (profileError || !profile) {
       await supabase.auth.signOut();
-      setError("Your LearnBoard profile could not be found.");
-      setLoading(false);
-      return;
-    }
-
-    if (!profile.is_active) {
-      await supabase.auth.signOut();
-      setError("This LearnBoard account is inactive.");
-      setLoading(false);
-      return;
-    }
-
-    if (profile.role !== role) {
-      await supabase.auth.signOut();
 
       setError(
-        role === "admin"
-          ? "This account does not have Administrator access."
-          : "This account does not have Student access."
+        "Your LearnBoard profile could not be found."
       );
 
       setLoading(false);
       return;
     }
 
-    if (profile.role === "admin") {
+    if (!profile.is_active) {
+      await supabase.auth.signOut();
+
+      setError(
+        "This LearnBoard account is inactive."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    const isAdministrator =
+      profile.role === "admin" ||
+      profile.role === "super_admin";
+
+    const isStudent =
+      profile.role === "student";
+
+    /*
+     * Administrator login accepts:
+     * - Super Admin
+     * - School Admin / Teacher
+     */
+    if (role === "admin" && !isAdministrator) {
+      await supabase.auth.signOut();
+
+      setError(
+        "This account does not have Administrator access."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    /*
+     * Student login accepts only students.
+     */
+    if (role === "student" && !isStudent) {
+      await supabase.auth.signOut();
+
+      setError(
+        "This account does not have Student access."
+      );
+
+      setLoading(false);
+      return;
+    }
+
+    /*
+     * School administrators and students must eventually
+     * belong to a school.
+     *
+     * We are temporarily allowing NULL school_id while the
+     * multi-school migration is being completed.
+     *
+     * Super Admin deliberately has no school_id.
+     */
+
+    if (isAdministrator) {
       router.push("/admin");
     } else {
       router.push("/student");
@@ -78,11 +123,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl grid md:grid-cols-2">
+    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl md:grid-cols-2">
 
         {/* LEFT SIDE */}
-        <section className="hidden md:flex min-h-[650px] flex-col justify-between bg-slate-900 p-12 text-white">
+        <section className="hidden min-h-[650px] flex-col justify-between bg-slate-900 p-12 text-white md:flex">
+
           <div>
             <div className="text-3xl font-bold">
               LearnBoard
@@ -100,22 +146,25 @@ export default function LoginPage() {
               Grow.
             </h1>
 
-            <p className="mt-5 max-w-sm text-slate-300 leading-7">
+            <p className="mt-5 max-w-sm leading-7 text-slate-300">
               Interactive learning experiences, SCORM games,
-              assignments and progress tracking in one place.
+              learning paths and progress tracking in one place.
             </p>
           </div>
 
           <p className="text-sm text-slate-400">
             LearnBoard Learning Management System
           </p>
+
         </section>
 
         {/* LOGIN SIDE */}
         <section className="flex min-h-[650px] items-center p-8 md:p-14">
+
           <div className="w-full">
 
             <div className="mb-10 md:hidden">
+
               <div className="text-3xl font-bold text-slate-900">
                 LearnBoard
               </div>
@@ -123,6 +172,7 @@ export default function LoginPage() {
               <p className="text-slate-500">
                 eLearning Platform
               </p>
+
             </div>
 
             <h2 className="text-3xl font-bold text-slate-900">
@@ -175,6 +225,7 @@ export default function LoginPage() {
             >
 
               <div>
+
                 <label
                   htmlFor="email"
                   className="mb-2 block text-sm font-medium text-slate-700"
@@ -194,9 +245,11 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900"
                 />
+
               </div>
 
               <div>
+
                 <label
                   htmlFor="password"
                   className="mb-2 block text-sm font-medium text-slate-700"
@@ -208,7 +261,11 @@ export default function LoginPage() {
 
                   <input
                     id="password"
-                    type={showPassword ? "text" : "password"}
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
                     required
                     autoComplete="current-password"
                     value={password}
@@ -222,11 +279,15 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() =>
-                      setShowPassword(!showPassword)
+                      setShowPassword(
+                        !showPassword
+                      )
                     }
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500"
                   >
-                    {showPassword ? "Hide" : "Show"}
+                    {showPassword
+                      ? "Hide"
+                      : "Show"}
                   </button>
 
                 </div>
@@ -248,8 +309,8 @@ export default function LoginPage() {
                 {loading
                   ? "Signing in..."
                   : role === "admin"
-                  ? "Login as Administrator"
-                  : "Login as Student"}
+                    ? "Login as Administrator"
+                    : "Login as Student"}
               </button>
 
             </form>

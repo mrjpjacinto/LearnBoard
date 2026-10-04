@@ -14,47 +14,104 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, email, role, is_active")
+    .select(
+      "full_name, email, role, is_active, school_id"
+    )
     .eq("id", user.id)
     .single();
 
-  if (!profile || !profile.is_active || profile.role !== "admin") {
+  const isSuperAdmin =
+    profile?.role === "super_admin";
+
+  const isSchoolAdmin =
+    profile?.role === "admin";
+
+  if (
+    !profile ||
+    !profile.is_active ||
+    (!isSuperAdmin && !isSchoolAdmin)
+  ) {
     redirect("/");
   }
+
+  /*
+   * Once the multi-school migration is complete,
+   * ordinary School Admins must belong to a school.
+   *
+   * Super Admin deliberately has school_id = null.
+   */
 
   return (
     <main className="min-h-screen bg-slate-100 p-8">
       <div className="mx-auto max-w-7xl">
+
         <div className="rounded-3xl bg-slate-900 p-10 text-white">
-	<p className="text-sm font-medium text-slate-300">
-  		Administrator Portal
-	</p>
+
+          <p className="text-sm font-medium text-slate-300">
+            {isSuperAdmin
+              ? "Super Administrator Portal"
+              : "School Administrator Portal"}
+          </p>
 
           <h1 className="mt-2 text-4xl font-bold">
             Welcome to LearnBoard
           </h1>
 
           <p className="mt-3 text-slate-300">
-            Signed in as {profile.full_name || profile.email}
+            Signed in as{" "}
+            {profile.full_name || profile.email}
           </p>
+
+          {isSuperAdmin && (
+            <p className="mt-2 text-sm text-slate-400">
+              Platform-wide administration
+            </p>
+          )}
+
         </div>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
-          <DashboardCard title="Students" value="0" />
-          <DashboardCard title="Games" value="0" />
-          <DashboardCard title="Learning Boards" value="0" />
+        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+
+          {isSuperAdmin && (
+            <DashboardCard
+              title="Schools"
+              value="0"
+            />
+          )}
+
+          <DashboardCard
+            title="Students"
+            value="0"
+          />
+
+          <DashboardCard
+            title="Games"
+            value="0"
+          />
+
+          <DashboardCard
+            title="Learning Paths"
+            value="0"
+          />
+
         </div>
 
         <div className="mt-8 rounded-3xl bg-white p-8 shadow-sm">
+
           <h2 className="text-2xl font-bold text-slate-900">
-            Administrator Dashboard
+            {isSuperAdmin
+              ? "Platform Dashboard"
+              : "School Dashboard"}
           </h2>
 
           <p className="mt-3 text-slate-600">
-            Your LearnBoard administration system is connected and ready
-            for the next stage.
+            {isSuperAdmin
+              ? "Manage schools, administrators, students, games, learning paths and reports across LearnBoard."
+              : "Manage your school's students, games, learning paths and reports."}
           </p>
+
         </div>
+
       </div>
     </main>
   );
@@ -69,8 +126,15 @@ function DashboardCard({
 }) {
   return (
     <div className="rounded-3xl bg-white p-7 shadow-sm">
-      <p className="text-sm font-medium text-slate-500">{title}</p>
-      <p className="mt-3 text-4xl font-bold text-slate-900">{value}</p>
+
+      <p className="text-sm font-medium text-slate-500">
+        {title}
+      </p>
+
+      <p className="mt-3 text-4xl font-bold text-slate-900">
+        {value}
+      </p>
+
     </div>
   );
 }
