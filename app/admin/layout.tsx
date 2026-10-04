@@ -4,9 +4,9 @@ import AdminSidebar from "@/components/AdminSidebar";
 
 export default async function AdminLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   const supabase = await createClient();
 
   const {
@@ -40,14 +40,22 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-[#F4F7FB]">
       <div className="flex min-h-screen">
 
-        <AdminSidebar role={profile.role} />
+        <AdminSidebar
+          role={profile.role}
+          fullName={profile.full_name}
+          email={
+            profile.email ||
+            user.email ||
+            ""
+          }
+        />
 
-        <div className="min-w-0 flex-1">
+        <main className="min-w-0 flex-1 bg-[#F4F7FB]">
           {children}
-        </div>
+        </main>
 
       </div>
     </div>

@@ -1,7 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
+import PrimaryAddButton from "@/components/PrimaryAddButton";
 
 type School = {
   id: string;
@@ -21,36 +26,74 @@ export default function AddUserForm({
 }: AddUserFormProps) {
   const router = useRouter();
 
-  const [open, setOpen] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [open, setOpen] =
+    useState(false);
+
+  const [fullName, setFullName] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
 
   const [role, setRole] =
-    useState<"student" | "admin">("student");
+    useState<"student" | "admin">(
+      "student"
+    );
 
-  const [schoolId, setSchoolId] = useState("");
+  const [schoolId, setSchoolId] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [saving, setSaving] =
+    useState(false);
 
-  const activeSchools = schools.filter(
-    (school) => school.is_active
-  );
+  const [error, setError] =
+    useState("");
+
+  const activeSchools =
+    schools.filter(
+      (school) =>
+        school.is_active
+    );
+
+  useEffect(() => {
+    if (
+      !isSuperAdmin &&
+      activeSchools.length === 1
+    ) {
+      setSchoolId(
+        activeSchools[0].id
+      );
+    }
+  }, [
+    isSuperAdmin,
+    activeSchools,
+  ]);
 
   function resetForm() {
     setFullName("");
     setEmail("");
     setPassword("");
     setRole("student");
-    setSchoolId("");
+
+    if (
+      !isSuperAdmin &&
+      activeSchools.length === 1
+    ) {
+      setSchoolId(
+        activeSchools[0].id
+      );
+    } else {
+      setSchoolId("");
+    }
+
     setError("");
-    setSuccess("");
   }
 
   function closeModal() {
-    if (loading) {
+    if (saving) {
       return;
     }
 
@@ -63,325 +106,366 @@ export default function AddUserForm({
   ) {
     event.preventDefault();
 
-    setError("");
-    setSuccess("");
+    const cleanName =
+      fullName.trim();
 
-    if (isSuperAdmin && !schoolId) {
+    const cleanEmail =
+      email
+        .trim()
+        .toLowerCase();
+
+    if (!cleanName) {
       setError(
-        "Please select a school for this user."
+        "Full name is required."
       );
+
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const response = await fetch(
-        "/api/admin/users",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            fullName,
-            email,
-            password,
-            role,
-
-            /*
-             * Super Admin selects the destination school.
-             *
-             * School Admin does not send a school.
-             * The server will force the new user into
-             * the School Admin's own school.
-             */
-            schoolId:
-              isSuperAdmin
-                ? schoolId
-                : null,
-          }),
-        }
+    if (!cleanEmail) {
+      setError(
+        "Email is required."
       );
 
-      const result = await response.json();
+      return;
+    }
+
+    if (
+      password.length < 8
+    ) {
+      setError(
+        "Password must be at least 8 characters."
+      );
+
+      return;
+    }
+
+    if (
+      isSuperAdmin &&
+      !schoolId
+    ) {
+      setError(
+        "Please select a school."
+      );
+
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const response =
+        await fetch(
+          "/api/admin/users",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              fullName:
+                cleanName,
+              email:
+                cleanEmail,
+              password,
+              role,
+              schoolId:
+                schoolId ||
+                undefined,
+            }),
+          }
+        );
+
+      const result =
+        await response.json();
 
       if (!response.ok) {
         setError(
           result.error ||
             "Unable to create user."
         );
+
         return;
       }
 
-      setSuccess(
-        "User created successfully."
-      );
-
-      setFullName("");
-      setEmail("");
-      setPassword("");
-      setRole("student");
-      setSchoolId("");
+      resetForm();
+      setOpen(false);
 
       router.refresh();
-
-      setTimeout(() => {
-        setOpen(false);
-        setSuccess("");
-      }, 800);
     } catch {
       setError(
         "Unable to connect to the server."
       );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => {
-          setOpen(true);
-          setError("");
-          setSuccess("");
-        }}
-        className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+      <PrimaryAddButton
+        onClick={() =>
+          setOpen(true)
+        }
       >
-        + Add User
-      </button>
+        Add User
+      </PrimaryAddButton>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
 
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white text-slate-900 shadow-xl">
+          <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white text-slate-900 shadow-xl">
 
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E3E8F2] bg-white px-6 py-5">
 
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <p className="text-xs font-semibold tracking-wide text-[#6366F1]">
+                  USER MANAGEMENT
+                </p>
+
+                <h2 className="mt-1 text-xl font-bold text-[#172033]">
                   Add User
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Create a new LearnBoard account.
+                  Create a new administrator or student account.
                 </p>
               </div>
 
               <button
                 type="button"
-                onClick={closeModal}
-                disabled={loading}
-                className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                onClick={
+                  closeModal
+                }
+                disabled={saving}
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
               >
-                ✕
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
               </button>
 
             </div>
 
             <form
-              onSubmit={handleSubmit}
-              className="space-y-5 p-6"
+              onSubmit={
+                handleSubmit
+              }
             >
 
-              <div>
-                <label
-                  htmlFor="new-user-name"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Full Name
-                </label>
+              <div className="space-y-5 p-6">
 
-                <input
-                  id="new-user-name"
-                  required
-                  value={fullName}
-                  onChange={(event) =>
-                    setFullName(
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
-                  placeholder="Full name"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="new-user-email"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Email
-                </label>
-
-                <input
-                  id="new-user-email"
-                  required
-                  type="email"
-                  value={email}
-                  onChange={(event) =>
-                    setEmail(
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
-                  placeholder="user@example.com"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="new-user-password"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Temporary Password
-                </label>
-
-                <input
-                  id="new-user-password"
-                  required
-                  type="password"
-                  minLength={8}
-                  value={password}
-                  onChange={(event) =>
-                    setPassword(
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
-                  placeholder="Minimum 8 characters"
-                />
-
-                <p className="mt-2 text-xs text-slate-500">
-                  The user will use this password
-                  to sign in.
-                </p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="new-user-role"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
-                  Role
-                </label>
-
-                <select
-                  id="new-user-role"
-                  value={role}
-                  onChange={(event) =>
-                    setRole(
-                      event.target.value as
-                        | "student"
-                        | "admin"
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-slate-900"
-                >
-                  <option value="student">
-                    Student
-                  </option>
-
-                  <option value="admin">
-                    School Administrator
-                  </option>
-                </select>
-              </div>
-
-              {isSuperAdmin && (
                 <div>
-                  <label
-                    htmlFor="new-user-school"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    School
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Full Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(
+                      event
+                    ) =>
+                      setFullName(
+                        event.target
+                          .value
+                      )
+                    }
+                    autoFocus
+                    placeholder="Enter full name"
+                    className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-[#818CF8]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Email
+                  </label>
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(
+                      event
+                    ) =>
+                      setEmail(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="student@school.com"
+                    className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-[#818CF8]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Temporary Password
+                  </label>
+
+                  <input
+                    type="password"
+                    value={password}
+                    minLength={8}
+                    onChange={(
+                      event
+                    ) =>
+                      setPassword(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="Minimum 8 characters"
+                    className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-[#818CF8]"
+                  />
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    The password must contain at least 8 characters.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Role
                   </label>
 
                   <select
-                    id="new-user-school"
-                    required
-                    value={schoolId}
-                    onChange={(event) =>
-                      setSchoolId(
-                        event.target.value
+                    value={role}
+                    onChange={(
+                      event
+                    ) =>
+                      setRole(
+                        event.target
+                          .value as
+                          | "student"
+                          | "admin"
                       )
                     }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-slate-900"
+                    className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none transition focus:border-[#818CF8]"
                   >
-                    <option value="">
-                      Select a school
+                    <option value="student">
+                      Student
                     </option>
 
-                    {activeSchools.map(
-                      (school) => (
-                        <option
-                          key={school.id}
-                          value={school.id}
-                        >
-                          {school.name}
-                          {school.code
-                            ? ` (${school.code})`
-                            : ""}
-                        </option>
-                      )
-                    )}
-
+                    <option value="admin">
+                      School Administrator
+                    </option>
                   </select>
+                </div>
 
-                  {activeSchools.length === 0 && (
-                    <p className="mt-2 text-xs font-medium text-amber-700">
-                      There are no active schools.
-                      Create or activate a school
-                      before adding school users.
-                    </p>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    School
+                  </label>
+
+                  {isSuperAdmin ? (
+                    <select
+                      value={
+                        schoolId
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setSchoolId(
+                          event.target
+                            .value
+                        )
+                      }
+                      className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none transition focus:border-[#818CF8]"
+                    >
+                      <option value="">
+                        Select school
+                      </option>
+
+                      {activeSchools.map(
+                        (
+                          school
+                        ) => (
+                          <option
+                            key={
+                              school.id
+                            }
+                            value={
+                              school.id
+                            }
+                          >
+                            {
+                              school.name
+                            }
+                            {school.code
+                              ? ` (${school.code})`
+                              : ""}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  ) : (
+                    <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                      {activeSchools[0]
+                        ? activeSchools[0]
+                            .code
+                          ? `${activeSchools[0].name} (${activeSchools[0].code})`
+                          : activeSchools[0]
+                              .name
+                        : "No school assigned"}
+                    </div>
                   )}
-                </div>
-              )}
 
-              {!isSuperAdmin && (
-                <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                  This user will automatically be
-                  added to your school.
+                  <p className="mt-2 text-xs text-slate-500">
+                    {isSuperAdmin
+                      ? "Select the school this user belongs to."
+                      : "Users you create are automatically assigned to your school."}
+                  </p>
                 </div>
-              )}
 
-              {error && (
-                <div className="rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">
-                  {error}
-                </div>
-              )}
+                {error && (
+                  <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-700">
+                    {error}
+                  </div>
+                )}
 
-              {success && (
-                <div className="rounded-xl bg-emerald-50 p-4 text-sm font-medium text-emerald-700">
-                  {success}
-                </div>
-              )}
+              </div>
 
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[#E3E8F2] bg-[#FAFBFD] px-6 py-4">
 
                 <button
                   type="button"
-                  onClick={closeModal}
-                  disabled={loading}
-                  className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 disabled:opacity-50"
+                  onClick={
+                    closeModal
+                  }
+                  disabled={saving}
+                  className="rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
 
                 <button
                   type="submit"
-                  disabled={
-                    loading ||
-                    (isSuperAdmin &&
-                      activeSchools.length === 0)
-                  }
-                  className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={saving}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading
-                    ? "Creating..."
-                    : "Create User"}
+                  {!saving && (
+                    <PlusIcon />
+                  )}
+
+                  {saving
+                    ? "Adding..."
+                    : "Add User"}
                 </button>
 
               </div>
@@ -392,5 +476,23 @@ export default function AddUserForm({
         </div>
       )}
     </>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
   );
 }

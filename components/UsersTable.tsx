@@ -20,49 +20,103 @@ type School = {
   is_active: boolean;
 };
 
+type ClassRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  school_id: string | null;
+};
+
+type Membership = {
+  group_id: string;
+  user_id: string;
+};
+
 type UsersTableProps = {
   users: UserRow[];
   currentUserId: string;
   schools: School[];
+  classes?: ClassRow[];
+  memberships?: Membership[];
+  isSuperAdmin?: boolean;
 };
 
 export default function UsersTable({
   users,
   currentUserId,
   schools,
+  classes = [],
+  memberships = [],
+  isSuperAdmin = false,
 }: UsersTableProps) {
   const router = useRouter();
 
-  const [search, setSearch] = useState("");
-  const [role, setRole] = useState("all");
-  const [school, setSchool] = useState("all");
-  const [status, setStatus] = useState("all");
-
-  const [selectedUser, setSelectedUser] =
-    useState<UserRow | null>(null);
-
-  const [editName, setEditName] =
+  const [search, setSearch] =
     useState("");
 
-  const [editRole, setEditRole] =
-    useState<"student" | "admin">("student");
+  const [role, setRole] =
+    useState("all");
 
-  const [editActive, setEditActive] =
-    useState(true);
+  const [school, setSchool] =
+    useState("all");
 
-  const [saving, setSaving] =
-    useState(false);
+  const [status, setStatus] =
+    useState("all");
 
-  const [editError, setEditError] =
-    useState("");
+  const [
+    selectedUser,
+    setSelectedUser,
+  ] = useState<UserRow | null>(
+    null
+  );
+
+  const [
+    editName,
+    setEditName,
+  ] = useState("");
+
+  const [
+    editRole,
+    setEditRole,
+  ] = useState<
+    "student" | "admin"
+  >("student");
+
+  const [
+    editActive,
+    setEditActive,
+  ] = useState(true);
+
+  const [
+    editSchoolId,
+    setEditSchoolId,
+  ] = useState("");
+
+  const [
+    editClassIds,
+    setEditClassIds,
+  ] = useState<string[]>([]);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    editError,
+    setEditError,
+  ] = useState("");
 
   const [
     showPasswordReset,
     setShowPasswordReset,
   ] = useState(false);
 
-  const [newPassword, setNewPassword] =
-    useState("");
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
 
   const [
     confirmPassword,
@@ -84,19 +138,25 @@ export default function UsersTable({
     setPasswordSuccess,
   ] = useState(false);
 
-  /*
-   * Create a fast lookup:
-   *
-   * school ID -> school information
-   */
-  const schoolMap = useMemo(() => {
-    return new Map(
-      schools.map((item) => [
-        item.id,
-        item,
-      ])
-    );
-  }, [schools]);
+  const schoolMap =
+    useMemo(() => {
+      return new Map(
+        schools.map((item) => [
+          item.id,
+          item,
+        ])
+      );
+    }, [schools]);
+
+  const classMap =
+    useMemo(() => {
+      return new Map(
+        classes.map((item) => [
+          item.id,
+          item,
+        ])
+      );
+    }, [classes]);
 
   function getSchoolName(
     schoolId: string | null
@@ -105,14 +165,11 @@ export default function UsersTable({
       return "Not assigned";
     }
 
-    const foundSchool =
-      schoolMap.get(schoolId);
-
-    if (!foundSchool) {
-      return "Unknown school";
-    }
-
-    return foundSchool.name;
+    return (
+      schoolMap.get(schoolId)
+        ?.name ||
+      "Unknown school"
+    );
   }
 
   function getSchoolDisplay(
@@ -122,18 +179,16 @@ export default function UsersTable({
       return "Not assigned";
     }
 
-    const foundSchool =
+    const found =
       schoolMap.get(schoolId);
 
-    if (!foundSchool) {
+    if (!found) {
       return "Unknown school";
     }
 
-    if (foundSchool.code) {
-      return `${foundSchool.name} (${foundSchool.code})`;
-    }
-
-    return foundSchool.name;
+    return found.code
+      ? `${found.name} (${found.code})`
+      : found.name;
   }
 
   function roleLabel(
@@ -149,7 +204,9 @@ export default function UsersTable({
       return "School Administrator";
     }
 
-    if (userRole === "student") {
+    if (
+      userRole === "student"
+    ) {
       return "Student";
     }
 
@@ -159,7 +216,9 @@ export default function UsersTable({
   const filteredUsers =
     useMemo(() => {
       const query =
-        search.trim().toLowerCase();
+        search
+          .trim()
+          .toLowerCase();
 
       return users
         .filter((user) => {
@@ -171,23 +230,34 @@ export default function UsersTable({
               : undefined;
 
           const schoolName =
-            userSchool?.name
-              ?.toLowerCase() || "";
+            (
+              userSchool?.name ||
+              ""
+            ).toLowerCase();
 
           const schoolCode =
-            userSchool?.code
-              ?.toLowerCase() || "";
+            (
+              userSchool?.code ||
+              ""
+            ).toLowerCase();
 
           const matchesSearch =
             !query ||
-            (user.full_name || "")
+            (
+              user.full_name ||
+              ""
+            )
               .toLowerCase()
               .includes(query) ||
             user.email
               .toLowerCase()
               .includes(query) ||
-            schoolName.includes(query) ||
-            schoolCode.includes(query);
+            schoolName.includes(
+              query
+            ) ||
+            schoolCode.includes(
+              query
+            );
 
           const matchesRole =
             role === "all" ||
@@ -195,20 +265,27 @@ export default function UsersTable({
 
           const matchesSchool =
             school === "all" ||
-            (school ===
-              "platform" &&
+            (
+              school ===
+                "platform" &&
               user.role ===
-                "super_admin") ||
+                "super_admin"
+            ) ||
             user.school_id ===
               school;
 
           const matchesStatus =
             status === "all" ||
-            (status === "active" &&
-              user.is_active) ||
-            (status ===
-              "inactive" &&
-              !user.is_active);
+            (
+              status ===
+                "active" &&
+              user.is_active
+            ) ||
+            (
+              status ===
+                "inactive" &&
+              !user.is_active
+            );
 
           return (
             matchesSearch &&
@@ -218,13 +295,11 @@ export default function UsersTable({
           );
         })
         .sort((a, b) => {
-          /*
-           * Current account first.
-           */
           if (
             a.id ===
               currentUserId &&
-            b.id !== currentUserId
+            b.id !==
+              currentUserId
           ) {
             return -1;
           }
@@ -232,16 +307,12 @@ export default function UsersTable({
           if (
             b.id ===
               currentUserId &&
-            a.id !== currentUserId
+            a.id !==
+              currentUserId
           ) {
             return 1;
           }
 
-          /*
-           * Super Administrator
-           * School Administrator
-           * Student
-           */
           const roleOrder: Record<
             string,
             number
@@ -251,28 +322,30 @@ export default function UsersTable({
             student: 2,
           };
 
-          const roleDifference =
-            (roleOrder[a.role] ??
-              99) -
-            (roleOrder[b.role] ??
-              99);
+          const difference =
+            (
+              roleOrder[
+                a.role
+              ] ?? 99
+            ) -
+            (
+              roleOrder[
+                b.role
+              ] ?? 99
+            );
 
           if (
-            roleDifference !== 0
+            difference !== 0
           ) {
-            return roleDifference;
+            return difference;
           }
 
-          const aName =
+          return (
             a.full_name ||
-            a.email;
-
-          const bName =
+            a.email
+          ).localeCompare(
             b.full_name ||
-            b.email;
-
-          return aName.localeCompare(
-            bName
+              b.email
           );
         });
     }, [
@@ -283,6 +356,28 @@ export default function UsersTable({
       status,
       currentUserId,
       schoolMap,
+    ]);
+
+  const availableClasses =
+    useMemo(() => {
+      if (!editSchoolId) {
+        return [];
+      }
+
+      return classes
+        .filter(
+          (item) =>
+            item.school_id ===
+            editSchoolId
+        )
+        .sort((a, b) =>
+          a.name.localeCompare(
+            b.name
+          )
+        );
+    }, [
+      classes,
+      editSchoolId,
     ]);
 
   function openManage(
@@ -302,6 +397,26 @@ export default function UsersTable({
 
     setEditActive(
       user.is_active
+    );
+
+    setEditSchoolId(
+      user.school_id || ""
+    );
+
+    setEditClassIds(
+      memberships
+        .filter(
+          (item) =>
+            item.user_id ===
+            user.id
+        )
+        .map(
+          (item) =>
+            item.group_id
+        )
+        .filter((id) =>
+          classMap.has(id)
+        )
     );
 
     setEditError("");
@@ -337,14 +452,73 @@ export default function UsersTable({
     setPasswordSuccess(false);
   }
 
+  function changeSchool(
+    nextSchoolId: string
+  ) {
+    setEditSchoolId(
+      nextSchoolId
+    );
+
+    /*
+     * Classes are school-local.
+     * Remove selections that do
+     * not belong to the newly
+     * selected school.
+     */
+    setEditClassIds(
+      (current) =>
+        current.filter(
+          (classId) =>
+            classMap.get(
+              classId
+            )?.school_id ===
+            nextSchoolId
+        )
+    );
+  }
+
+  function toggleClass(
+    classId: string
+  ) {
+    setEditClassIds(
+      (current) =>
+        current.includes(
+          classId
+        )
+          ? current.filter(
+              (id) =>
+                id !== classId
+            )
+          : [
+              ...current,
+              classId,
+            ]
+    );
+  }
+
   async function saveUser() {
     if (!selectedUser) {
       return;
     }
 
-    if (!editName.trim()) {
+    if (
+      !editName.trim()
+    ) {
       setEditError(
         "Full name is required."
+      );
+
+      return;
+    }
+
+    if (
+      selectedUser.role !==
+        "super_admin" &&
+      isSuperAdmin &&
+      !editSchoolId
+    ) {
+      setEditError(
+        "Please select a school."
       );
 
       return;
@@ -354,13 +528,6 @@ export default function UsersTable({
     setEditError("");
 
     try {
-      /*
-       * Super Administrator role changes
-       * are not performed here.
-       *
-       * The server independently protects
-       * Super Administrator accounts.
-       */
       const roleToSend =
         selectedUser.role ===
         "super_admin"
@@ -387,6 +554,18 @@ export default function UsersTable({
 
               isActive:
                 editActive,
+
+              schoolId:
+                selectedUser.role ===
+                "super_admin"
+                  ? null
+                  : editSchoolId,
+
+              classIds:
+                roleToSend ===
+                "student"
+                  ? editClassIds
+                  : [],
             }),
           }
         );
@@ -500,15 +679,15 @@ export default function UsersTable({
 
   return (
     <>
-      <div className="mt-8 overflow-hidden rounded-2xl bg-white text-slate-900 shadow-sm">
+      <div className="mt-8 overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white text-slate-900 shadow-sm">
 
         {/* Filters */}
-        <div className="border-b border-slate-200 p-6">
+        <div className="border-b border-[#E3E8F2] p-6">
 
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
 
             <div>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="font-semibold text-[#172033]">
                 All Users
               </h2>
 
@@ -539,7 +718,7 @@ export default function UsersTable({
                   )
                 }
                 placeholder="Search users or schools..."
-                className="min-w-56 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
+                className="min-w-56 rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#818CF8]"
               />
 
               <select
@@ -552,7 +731,7 @@ export default function UsersTable({
                       .value
                   )
                 }
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none"
+                className="rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm outline-none"
               >
                 <option value="all">
                   All Roles
@@ -583,7 +762,7 @@ export default function UsersTable({
                         .value
                     )
                   }
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none"
+                  className="rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm outline-none"
                 >
                   <option value="all">
                     All Schools
@@ -595,23 +774,23 @@ export default function UsersTable({
 
                   {schools.map(
                     (
-                      schoolItem
+                      item
                     ) => (
                       <option
                         key={
-                          schoolItem.id
+                          item.id
                         }
                         value={
-                          schoolItem.id
+                          item.id
                         }
                       >
                         {
-                          schoolItem.name
+                          item.name
                         }
-                        {schoolItem.code
-                          ? ` (${schoolItem.code})`
+                        {item.code
+                          ? ` (${item.code})`
                           : ""}
-                        {!schoolItem.is_active
+                        {!item.is_active
                           ? " — Inactive"
                           : ""}
                       </option>
@@ -630,7 +809,7 @@ export default function UsersTable({
                       .value
                   )
                 }
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none"
+                className="rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm outline-none"
               >
                 <option value="all">
                   All Statuses
@@ -654,7 +833,7 @@ export default function UsersTable({
 
           <table className="w-full text-left">
 
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-[#F8FAFC] text-xs uppercase text-slate-500">
               <tr>
 
                 <th className="px-6 py-4">
@@ -688,7 +867,7 @@ export default function UsersTable({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[#EEF1F6]">
 
               {filteredUsers.map(
                 (user) => {
@@ -696,7 +875,7 @@ export default function UsersTable({
                     user.id ===
                     currentUserId;
 
-                  const isSuperAdmin =
+                  const userIsSuperAdmin =
                     user.role ===
                     "super_admin";
 
@@ -705,13 +884,12 @@ export default function UsersTable({
                       key={user.id}
                       className={
                         isCurrentUser
-                          ? "bg-blue-50/40 text-sm"
+                          ? "bg-[#F5F6FF] text-sm"
                           : "text-sm"
                       }
                     >
 
-                      {/* Name */}
-                      <td className="px-6 py-4 font-medium text-slate-900">
+                      <td className="px-6 py-4 font-medium text-[#172033]">
 
                         <div className="flex items-center gap-2">
 
@@ -721,7 +899,7 @@ export default function UsersTable({
                           </span>
 
                           {isCurrentUser && (
-                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                            <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-semibold text-[#4F46E5]">
                               Me
                             </span>
                           )}
@@ -729,12 +907,10 @@ export default function UsersTable({
                         </div>
                       </td>
 
-                      {/* Email */}
                       <td className="px-6 py-4 text-slate-600">
                         {user.email}
                       </td>
 
-                      {/* Role */}
                       <td className="px-6 py-4">
 
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
@@ -745,10 +921,9 @@ export default function UsersTable({
 
                       </td>
 
-                      {/* School */}
                       <td className="px-6 py-4 text-slate-600">
 
-                        {isSuperAdmin ? (
+                        {userIsSuperAdmin ? (
                           <span className="font-medium text-slate-700">
                             Platform-wide
                           </span>
@@ -779,7 +954,6 @@ export default function UsersTable({
 
                       </td>
 
-                      {/* Status */}
                       <td className="px-6 py-4">
 
                         <span
@@ -796,7 +970,6 @@ export default function UsersTable({
 
                       </td>
 
-                      {/* Created */}
                       <td className="px-6 py-4 text-slate-500">
 
                         {new Date(
@@ -805,7 +978,6 @@ export default function UsersTable({
 
                       </td>
 
-                      {/* Actions */}
                       <td className="px-6 py-4 text-right">
 
                         <button
@@ -815,7 +987,7 @@ export default function UsersTable({
                               user
                             )
                           }
-                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                          className="rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
                         >
                           Manage
                         </button>
@@ -835,8 +1007,7 @@ export default function UsersTable({
                     colSpan={7}
                     className="px-6 py-12 text-center text-sm text-slate-500"
                   >
-                    No users match your
-                    filters.
+                    No users match your filters.
                   </td>
 
                 </tr>
@@ -851,22 +1022,22 @@ export default function UsersTable({
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
 
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white text-slate-900 shadow-xl">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white text-slate-900 shadow-xl">
 
-            {/* Modal Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5">
+            {/* Header */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#E3E8F2] bg-white px-6 py-5">
 
               <div>
 
                 <div className="flex items-center gap-2">
 
-                  <h2 className="text-xl font-bold">
+                  <h2 className="text-xl font-bold text-[#172033]">
                     Manage User
                   </h2>
 
                   {selectedUser.id ===
                     currentUserId && (
-                    <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                    <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-semibold text-[#4F46E5]">
                       Me
                     </span>
                   )}
@@ -881,7 +1052,9 @@ export default function UsersTable({
 
               <button
                 type="button"
-                onClick={closeManage}
+                onClick={
+                  closeManage
+                }
                 disabled={
                   saving ||
                   passwordSaving
@@ -913,8 +1086,7 @@ export default function UsersTable({
                         .value
                     )
                   }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
-                  placeholder="Enter full name"
+                  className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none focus:border-[#818CF8]"
                 />
 
               </div>
@@ -935,11 +1107,6 @@ export default function UsersTable({
                   className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-500"
                 />
 
-                <p className="mt-2 text-xs text-slate-500">
-                  Email changes will be
-                  added separately.
-                </p>
-
               </div>
 
               {/* School */}
@@ -949,24 +1116,81 @@ export default function UsersTable({
                   School
                 </label>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                {selectedUser.role ===
+                "super_admin" ? (
 
-                  {selectedUser.role ===
-                  "super_admin"
-                    ? "Platform-wide — Super Administrator"
-                    : getSchoolDisplay(
-                        selectedUser.school_id
+                  <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                    Platform-wide — Super Administrator
+                  </div>
+
+                ) : isSuperAdmin ? (
+                  <>
+
+                    <select
+                      value={
+                        editSchoolId
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        changeSchool(
+                          event.target
+                            .value
+                        )
+                      }
+                      className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none focus:border-[#818CF8]"
+                    >
+
+                      <option value="">
+                        Select school
+                      </option>
+
+                      {schools.map(
+                        (
+                          item
+                        ) => (
+                          <option
+                            key={
+                              item.id
+                            }
+                            value={
+                              item.id
+                            }
+                            disabled={
+                              !item.is_active
+                            }
+                          >
+                            {
+                              item.name
+                            }
+                            {item.code
+                              ? ` (${item.code})`
+                              : ""}
+                            {!item.is_active
+                              ? " — Inactive"
+                              : ""}
+                          </option>
+                        )
                       )}
 
-                </div>
+                    </select>
 
-                {selectedUser.role !==
-                  "super_admin" && (
-                  <p className="mt-2 text-xs text-slate-500">
-                    School transfers will
-                    use a separate protected
-                    workflow.
-                  </p>
+                    {selectedUser.school_id !==
+                      editSchoolId && (
+                      <p className="mt-2 text-xs font-medium text-amber-700">
+                        Changing schools will remove class memberships from the previous school.
+                      </p>
+                    )}
+
+                  </>
+                ) : (
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                    {getSchoolDisplay(
+                      selectedUser.school_id
+                    )}
+                  </div>
+
                 )}
 
               </div>
@@ -980,64 +1204,163 @@ export default function UsersTable({
 
                 {selectedUser.role ===
                 "super_admin" ? (
-                  <>
-                    <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600">
-                      Super Administrator
-                    </div>
 
-                    <p className="mt-2 text-xs text-slate-500">
-                      Super Administrator
-                      roles cannot be changed
-                      from standard user
-                      management.
-                    </p>
-                  </>
+                  <div className="rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-medium text-slate-600">
+                    Super Administrator
+                  </div>
+
                 ) : (
-                  <>
-                    <select
-                      value={editRole}
-                      disabled={
-                        selectedUser.id ===
-                        currentUserId
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        setEditRole(
-                          event.target
-                            .value as
-                            | "student"
-                            | "admin"
-                        )
-                      }
-                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
-                    >
 
-                      <option value="student">
-                        Student
-                      </option>
+                  <select
+                    value={
+                      editRole
+                    }
+                    disabled={
+                      selectedUser.id ===
+                      currentUserId
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setEditRole(
+                        event.target
+                          .value as
+                          | "student"
+                          | "admin"
+                      )
+                    }
+                    className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  >
 
-                      <option value="admin">
-                        School Administrator
-                      </option>
+                    <option value="student">
+                      Student
+                    </option>
 
-                    </select>
+                    <option value="admin">
+                      School Administrator
+                    </option>
 
-                    {selectedUser.id ===
-                      currentUserId && (
-                      <p className="mt-2 text-xs text-slate-500">
-                        You cannot change
-                        your own Administrator
-                        role.
-                      </p>
-                    )}
+                  </select>
 
-                  </>
                 )}
 
               </div>
 
-              {/* Account Status */}
+              {/* Classes */}
+              {selectedUser.role !==
+                "super_admin" &&
+                editRole ===
+                  "student" && (
+
+                <div>
+
+                  <div className="mb-3 flex items-center justify-between gap-4">
+
+                    <div>
+
+                      <label className="block text-sm font-semibold text-slate-700">
+                        Classes
+                      </label>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        A student can belong to multiple classes.
+                      </p>
+
+                    </div>
+
+                    <span className="rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#4F46E5]">
+                      {
+                        editClassIds.length
+                      }{" "}
+                      selected
+                    </span>
+
+                  </div>
+
+                  {!editSchoolId ? (
+
+                    <div className="rounded-xl border border-dashed border-[#D8DEEA] bg-[#F8FAFC] p-5 text-sm text-slate-500">
+                      Select a school before assigning classes.
+                    </div>
+
+                  ) : availableClasses.length ===
+                    0 ? (
+
+                    <div className="rounded-xl border border-dashed border-[#D8DEEA] bg-[#F8FAFC] p-5 text-sm text-slate-500">
+                      This school does not have any classes yet.
+                    </div>
+
+                  ) : (
+
+                    <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-[#E3E8F2] p-3">
+
+                      {availableClasses.map(
+                        (
+                          classItem
+                        ) => {
+                          const checked =
+                            editClassIds.includes(
+                              classItem.id
+                            );
+
+                          return (
+                            <label
+                              key={
+                                classItem.id
+                              }
+                              className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border p-3 transition ${
+                                checked
+                                  ? "border-[#A5B4FC] bg-[#F5F6FF]"
+                                  : "border-[#E3E8F2] bg-white hover:bg-slate-50"
+                              }`}
+                            >
+
+                              <div>
+
+                                <p className="text-sm font-semibold text-[#172033]">
+                                  {
+                                    classItem.name
+                                  }
+                                </p>
+
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {classItem.is_active
+                                    ? "Active"
+                                    : "Inactive"}
+                                </p>
+
+                              </div>
+
+                              <input
+                                type="checkbox"
+                                checked={
+                                  checked
+                                }
+                                disabled={
+                                  !classItem.is_active &&
+                                  !checked
+                                }
+                                onChange={() =>
+                                  toggleClass(
+                                    classItem.id
+                                  )
+                                }
+                                className="h-4 w-4 accent-[#6366F1]"
+                              />
+
+                            </label>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  )}
+
+                </div>
+              )}
+
+              {/* Status */}
               <div>
 
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -1065,7 +1388,7 @@ export default function UsersTable({
                         "active"
                     )
                   }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
                 >
 
                   <option value="active">
@@ -1078,20 +1401,13 @@ export default function UsersTable({
 
                 </select>
 
-                {selectedUser.id ===
-                  currentUserId && (
-                  <p className="mt-2 text-xs text-slate-500">
-                    You cannot deactivate
-                    your own account.
-                  </p>
-                )}
-
               </div>
 
               {/* Password */}
               {selectedUser.role !==
                 "super_admin" && (
-                <div className="border-t border-slate-200 pt-5">
+
+                <div className="border-t border-[#E3E8F2] pt-5">
 
                   <div className="flex items-center justify-between gap-4">
 
@@ -1102,14 +1418,13 @@ export default function UsersTable({
                       </p>
 
                       <p className="mt-1 text-xs text-slate-500">
-                        Set a new temporary
-                        password for this
-                        account.
+                        Set a new temporary password for this account.
                       </p>
 
                     </div>
 
                     {!showPasswordReset && (
+
                       <button
                         type="button"
                         onClick={() => {
@@ -1125,16 +1440,18 @@ export default function UsersTable({
                             false
                           );
                         }}
-                        className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="shrink-0 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] hover:bg-[#F5F6FF]"
                       >
                         Set New Password
                       </button>
+
                     )}
 
                   </div>
 
                   {showPasswordReset && (
-                    <div className="mt-4 space-y-4 rounded-xl bg-slate-50 p-4">
+
+                    <div className="mt-4 space-y-4 rounded-xl bg-[#F8FAFC] p-4">
 
                       <div>
 
@@ -1156,7 +1473,7 @@ export default function UsersTable({
                                 .value
                             )
                           }
-                          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
+                          className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none focus:border-[#818CF8]"
                           placeholder="Minimum 8 characters"
                         />
 
@@ -1165,8 +1482,7 @@ export default function UsersTable({
                       <div>
 
                         <label className="mb-2 block text-sm font-medium text-slate-700">
-                          Confirm New
-                          Password
+                          Confirm New Password
                         </label>
 
                         <input
@@ -1183,7 +1499,7 @@ export default function UsersTable({
                                 .value
                             )
                           }
-                          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900"
+                          className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 outline-none focus:border-[#818CF8]"
                           placeholder="Enter the password again"
                         />
 
@@ -1217,7 +1533,7 @@ export default function UsersTable({
                           disabled={
                             passwordSaving
                           }
-                          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                          className="rounded-lg border border-[#D8DEEA] bg-white px-4 py-2 text-xs font-semibold text-[#475467] disabled:opacity-50"
                         >
                           Cancel
                         </button>
@@ -1230,7 +1546,7 @@ export default function UsersTable({
                           disabled={
                             passwordSaving
                           }
-                          className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                          className="rounded-lg bg-[#6366F1] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#4F46E5] disabled:opacity-50"
                         >
                           {passwordSaving
                             ? "Updating..."
@@ -1238,10 +1554,12 @@ export default function UsersTable({
                         </button>
 
                       </div>
+
                     </div>
                   )}
 
                   {passwordMessage && (
+
                     <div
                       className={`mt-3 rounded-xl p-3 text-sm font-medium ${
                         passwordSuccess
@@ -1249,22 +1567,27 @@ export default function UsersTable({
                           : "bg-red-50 text-red-700"
                       }`}
                     >
-                      {passwordMessage}
+                      {
+                        passwordMessage
+                      }
                     </div>
+
                   )}
 
                 </div>
               )}
 
-              {/* Edit Error */}
+              {/* Error */}
               {editError && (
+
                 <div className="rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">
                   {editError}
                 </div>
+
               )}
 
               {/* Actions */}
-              <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              <div className="flex justify-end gap-3 border-t border-[#E3E8F2] pt-5">
 
                 <button
                   type="button"
@@ -1275,7 +1598,7 @@ export default function UsersTable({
                     saving ||
                     passwordSaving
                   }
-                  className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 disabled:opacity-50"
+                  className="rounded-xl border border-[#D8DEEA] px-5 py-3 text-sm font-semibold text-[#475467] disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1289,7 +1612,7 @@ export default function UsersTable({
                     saving ||
                     passwordSaving
                   }
-                  className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                  className="rounded-xl bg-[#6366F1] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:opacity-50"
                 >
                   {saving
                     ? "Saving..."

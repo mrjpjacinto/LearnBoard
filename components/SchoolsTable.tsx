@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type School = {
@@ -20,339 +20,658 @@ export default function SchoolsTable({
 }: SchoolsTableProps) {
   const router = useRouter();
 
-  const [selectedSchool, setSelectedSchool] =
-    useState<School | null>(null);
+  const [search, setSearch] =
+    useState("");
 
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [isActive, setIsActive] = useState(true);
+  const [status, setStatus] =
+    useState("all");
 
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [
+    selectedSchool,
+    setSelectedSchool,
+  ] = useState<School | null>(
+    null
+  );
 
-  function openManage(school: School) {
-    setSelectedSchool(school);
-    setName(school.name);
-    setCode(school.code || "");
-    setIsActive(school.is_active);
-    setError("");
-    setSuccess("");
+  const [
+    editName,
+    setEditName,
+  ] = useState("");
+
+  const [
+    editCode,
+    setEditCode,
+  ] = useState("");
+
+  const [
+    editActive,
+    setEditActive,
+  ] = useState(true);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    editError,
+    setEditError,
+  ] = useState("");
+
+  const filteredSchools =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
+
+      return schools.filter(
+        (school) => {
+          const matchesSearch =
+            !query ||
+            school.name
+              .toLowerCase()
+              .includes(query) ||
+            (
+              school.code || ""
+            )
+              .toLowerCase()
+              .includes(query);
+
+          const matchesStatus =
+            status === "all" ||
+            (
+              status ===
+                "active" &&
+              school.is_active
+            ) ||
+            (
+              status ===
+                "inactive" &&
+              !school.is_active
+            );
+
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        }
+      );
+    }, [
+      schools,
+      search,
+      status,
+    ]);
+
+  function openManage(
+    school: School
+  ) {
+    setSelectedSchool(
+      school
+    );
+
+    setEditName(
+      school.name
+    );
+
+    setEditCode(
+      school.code || ""
+    );
+
+    setEditActive(
+      school.is_active
+    );
+
+    setEditError("");
   }
 
   function closeManage() {
-    if (loading) {
+    if (saving) {
       return;
     }
 
     setSelectedSchool(null);
-    setError("");
-    setSuccess("");
+    setEditError("");
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
+  async function saveSchool() {
     if (!selectedSchool) {
       return;
     }
 
-    setError("");
-    setSuccess("");
-    setLoading(true);
+    const cleanName =
+      editName.trim();
 
-    try {
-      const response = await fetch(
-        `/api/admin/schools/${selectedSchool.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name,
-            code,
-            is_active: isActive,
-          }),
-        }
+    const cleanCode =
+      editCode.trim();
+
+    if (!cleanName) {
+      setEditError(
+        "School name is required."
       );
 
-      const data = await response.json();
+      return;
+    }
+
+    setSaving(true);
+    setEditError("");
+
+    try {
+      const response =
+        await fetch(
+          `/api/admin/schools/${selectedSchool.id}`,
+          {
+            method: "PATCH",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              name: cleanName,
+              code:
+                cleanCode ||
+                null,
+              isActive:
+                editActive,
+            }),
+          }
+        );
+
+      const result =
+        await response.json();
 
       if (!response.ok) {
-        setError(
-          data.error ||
-            "The school could not be updated."
+        setEditError(
+          result.error ||
+            "Unable to update school."
         );
+
         return;
       }
 
-      setSuccess("School updated successfully.");
+      setSelectedSchool(
+        null
+      );
 
       router.refresh();
-
-      setTimeout(() => {
-        setSelectedSchool(null);
-        setSuccess("");
-      }, 700);
     } catch {
-      setError(
-        "Something went wrong while updating the school."
+      setEditError(
+        "Unable to connect to the server."
       );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  }
-
-  if (schools.length === 0) {
-    return (
-      <div className="px-7 py-16 text-center">
-        <h3 className="text-lg font-semibold text-slate-900">
-          No schools yet
-        </h3>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Select Add School to create your first school.
-        </p>
-      </div>
-    );
   }
 
   return (
     <>
-      <div className="overflow-x-auto">
+      <div className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
 
-        <table className="w-full text-left">
+        {/* Table header */}
+        <div className="border-b border-[#E3E8F2] p-6">
 
-          <thead className="bg-slate-50 text-sm text-slate-500">
-            <tr>
-              <th className="px-7 py-4 font-semibold">
-                School
-              </th>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-              <th className="px-7 py-4 font-semibold">
-                Code
-              </th>
+            <div>
+              <h2 className="font-semibold text-[#172033]">
+                All Schools
+              </h2>
 
-              <th className="px-7 py-4 font-semibold">
-                Status
-              </th>
+              <p className="mt-1 text-sm text-slate-500">
+                {
+                  filteredSchools.length
+                }{" "}
+                school
+                {filteredSchools.length ===
+                1
+                  ? ""
+                  : "s"}{" "}
+                shown
+              </p>
+            </div>
 
-              <th className="px-7 py-4 font-semibold">
-                Created
-              </th>
+            <div className="flex flex-col gap-3 sm:flex-row">
 
-              <th className="px-7 py-4 text-right font-semibold">
-                Action
-              </th>
-            </tr>
-          </thead>
+              <div className="relative">
 
-          <tbody className="divide-y divide-slate-100">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="7"
+                  />
 
-            {schools.map((school) => (
-              <tr key={school.id}>
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
 
-                <td className="px-7 py-5">
-                  <p className="font-semibold text-slate-900">
-                    {school.name}
-                  </p>
-                </td>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(
+                    event
+                  ) =>
+                    setSearch(
+                      event.target
+                        .value
+                    )
+                  }
+                  placeholder="Search schools..."
+                  className="w-full min-w-64 rounded-xl border border-[#D8DEEA] bg-white py-2.5 pl-10 pr-4 text-sm text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#818CF8]"
+                />
 
-                <td className="px-7 py-5 text-sm text-slate-600">
-                  {school.code || "—"}
-                </td>
+              </div>
 
-                <td className="px-7 py-5">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                      school.is_active
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {school.is_active
-                      ? "Active"
-                      : "Inactive"}
-                  </span>
-                </td>
+              <select
+                value={status}
+                onChange={(
+                  event
+                ) =>
+                  setStatus(
+                    event.target
+                      .value
+                  )
+                }
+                className="rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm text-[#475467] outline-none transition focus:border-[#818CF8]"
+              >
+                <option value="all">
+                  All Statuses
+                </option>
 
-                <td className="px-7 py-5 text-sm text-slate-600">
-                  {new Date(
-                    school.created_at
-                  ).toLocaleDateString()}
-                </td>
+                <option value="active">
+                  Active
+                </option>
 
-                <td className="px-7 py-5 text-right">
-                  <button
-                    type="button"
-                    onClick={() => openManage(school)}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Manage
-                  </button>
-                </td>
+                <option value="inactive">
+                  Inactive
+                </option>
+              </select>
 
+            </div>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+
+          <table className="w-full text-left">
+
+            <thead className="bg-[#F8FAFC] text-xs font-semibold uppercase tracking-wide text-slate-500">
+
+              <tr>
+                <th className="px-6 py-4">
+                  School
+                </th>
+
+                <th className="px-6 py-4">
+                  Code
+                </th>
+
+                <th className="px-6 py-4">
+                  Status
+                </th>
+
+                <th className="px-6 py-4">
+                  Created
+                </th>
+
+                <th className="px-6 py-4 text-right">
+                  Actions
+                </th>
               </tr>
-            ))}
 
-          </tbody>
-        </table>
+            </thead>
 
+            <tbody className="divide-y divide-[#EEF1F6]">
+
+              {filteredSchools.map(
+                (school) => (
+                  <tr
+                    key={school.id}
+                    className="text-sm transition hover:bg-[#FAFBFD]"
+                  >
+
+                    <td className="px-6 py-4">
+
+                      <div className="flex items-center gap-3">
+
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#6366F1]">
+
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-5 w-5"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 21h18" />
+                            <path d="M5 21V9l7-4 7 4v12" />
+                            <path d="M9 21v-6h6v6" />
+                          </svg>
+
+                        </div>
+
+                        <div>
+                          <p className="font-semibold text-[#172033]">
+                            {
+                              school.name
+                            }
+                          </p>
+
+                          <p className="mt-0.5 text-xs text-slate-400">
+                            School
+                          </p>
+                        </div>
+
+                      </div>
+
+                    </td>
+
+                    <td className="px-6 py-4">
+
+                      {school.code ? (
+                        <span className="inline-flex rounded-lg bg-[#F1F5F9] px-2.5 py-1 font-mono text-xs font-semibold text-slate-600">
+                          {
+                            school.code
+                          }
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">
+                          —
+                        </span>
+                      )}
+
+                    </td>
+
+                    <td className="px-6 py-4">
+
+                      {school.is_active ? (
+
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+
+                          Active
+
+                        </span>
+
+                      ) : (
+
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
+
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+
+                          Inactive
+
+                        </span>
+
+                      )}
+
+                    </td>
+
+                    <td className="px-6 py-4 text-slate-500">
+                      {new Date(
+                        school.created_at
+                      ).toLocaleDateString()}
+                    </td>
+
+                    <td className="px-6 py-4 text-right">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openManage(
+                            school
+                          )
+                        }
+                        className="rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+                      >
+                        Manage
+                      </button>
+
+                    </td>
+
+                  </tr>
+                )
+              )}
+
+              {filteredSchools.length ===
+                0 && (
+
+                <tr>
+
+                  <td
+                    colSpan={5}
+                    className="px-6 py-14 text-center"
+                  >
+
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#6366F1]">
+
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 21h18" />
+                        <path d="M5 21V9l7-4 7 4v12" />
+                        <path d="M9 21v-6h6v6" />
+                      </svg>
+
+                    </div>
+
+                    <p className="mt-4 font-semibold text-[#172033]">
+                      No schools found
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Try changing your search or status filter.
+                    </p>
+
+                  </td>
+
+                </tr>
+              )}
+
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* Manage School Modal */}
       {selectedSchool && (
+
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
 
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white shadow-2xl">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white text-slate-900 shadow-xl">
 
-            <div className="flex items-start justify-between border-b border-slate-200 p-6">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-[#E3E8F2] px-6 py-5">
 
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">
+
+                <p className="text-xs font-semibold tracking-wide text-[#6366F1]">
+                  SCHOOL MANAGEMENT
+                </p>
+
+                <h2 className="mt-1 text-xl font-bold text-[#172033]">
                   Manage School
                 </h2>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Edit school information and status.
-                </p>
               </div>
 
               <button
                 type="button"
-                onClick={closeManage}
-                disabled={loading}
-                className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                onClick={
+                  closeManage
+                }
+                disabled={saving}
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
               >
-                Close
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
               </button>
 
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-5 p-6"
-            >
+            {/* Modal Body */}
+            <div className="space-y-5 p-6">
 
               <div>
-                <label
-                  htmlFor="manage-school-name"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
+
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   School Name
                 </label>
 
                 <input
-                  id="manage-school-name"
                   type="text"
-                  required
-                  maxLength={150}
-                  value={name}
-                  onChange={(event) =>
-                    setName(event.target.value)
+                  value={editName}
+                  onChange={(
+                    event
+                  ) =>
+                    setEditName(
+                      event.target
+                        .value
+                    )
                   }
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900"
+                  className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 text-[#172033] outline-none transition focus:border-[#818CF8]"
+                  placeholder="School name"
                 />
+
               </div>
 
               <div>
-                <label
-                  htmlFor="manage-school-code"
-                  className="mb-2 block text-sm font-semibold text-slate-700"
-                >
+
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   School Code
                 </label>
 
                 <input
-                  id="manage-school-code"
                   type="text"
-                  maxLength={50}
-                  value={code}
-                  onChange={(event) =>
-                    setCode(event.target.value)
+                  value={editCode}
+                  onChange={(
+                    event
+                  ) =>
+                    setEditCode(
+                      event.target
+                        .value
+                    )
                   }
-                  placeholder="Optional"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-slate-900"
+                  className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 text-[#172033] outline-none transition focus:border-[#818CF8]"
+                  placeholder="Optional school code"
                 />
+
+                <p className="mt-2 text-xs text-slate-500">
+                  Use a short unique code to identify this school.
+                </p>
+
               </div>
 
               <div>
-                <p className="mb-2 block text-sm font-semibold text-slate-700">
+
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
                   Status
-                </p>
+                </label>
 
-                <div className="grid grid-cols-2 gap-3">
-
-                  <button
-                    type="button"
-                    onClick={() => setIsActive(true)}
-                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                      isActive
-                        ? "border-emerald-600 bg-emerald-50 text-emerald-700"
-                        : "border-slate-300 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
+                <select
+                  value={
+                    editActive
+                      ? "active"
+                      : "inactive"
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setEditActive(
+                      event.target
+                        .value ===
+                        "active"
+                    )
+                  }
+                  className="w-full rounded-xl border border-[#D8DEEA] bg-white px-4 py-3 text-[#172033] outline-none transition focus:border-[#818CF8]"
+                >
+                  <option value="active">
                     Active
-                  </button>
+                  </option>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsActive(false)}
-                    className={`rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                      !isActive
-                        ? "border-slate-700 bg-slate-100 text-slate-900"
-                        : "border-slate-300 text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
+                  <option value="inactive">
                     Inactive
-                  </button>
-
-                </div>
+                  </option>
+                </select>
 
                 <p className="mt-2 text-xs text-slate-500">
-                  Inactive schools remain in LearnBoard so
-                  historical learning records can be preserved.
+                  Inactive schools remain in LearnBoard but cannot be selected for new assignments.
                 </p>
-              </div>
-
-              {error && (
-                <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  {success}
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3 pt-2">
-
-                <button
-                  type="button"
-                  onClick={closeManage}
-                  disabled={loading}
-                  className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading
-                    ? "Saving..."
-                    : "Save Changes"}
-                </button>
 
               </div>
 
-            </form>
+              {editError && (
+
+                <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-700">
+                  {editError}
+                </div>
+
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 border-t border-[#E3E8F2] bg-[#FAFBFD] px-6 py-4">
+
+              <button
+                type="button"
+                onClick={
+                  closeManage
+                }
+                disabled={saving}
+                className="rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  saveSchool
+                }
+                disabled={saving}
+                className="rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving
+                  ? "Saving..."
+                  : "Save Changes"}
+              </button>
+
+            </div>
 
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -8,100 +8,203 @@ type RouteContext = {
   }>;
 };
 
-/*
- * PATCH
- *
- * Edit:
- * - Full name
- * - Student / School Administrator role
- * - Active / Inactive status
- *
- * Security:
- * - Super Admin can manage school users across schools.
- * - School Admin can manage only users in their own school.
- * - School Admin can never manage a Super Admin.
- * - This endpoint never promotes anyone to Super Admin.
- * - A Super Admin cannot demote or deactivate themselves here.
- */
+async function getCurrentAdmin() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error: "Not authenticated.",
+      status: 401,
+    };
+  }
+
+  const { data: profile } =
+    await supabase
+      .from("profiles")
+      .select(
+        "id, role, is_active, school_id"
+      )
+      .eq("id", user.id)
+      .single();
+
+  if (
+    !profile ||
+    !profile.is_active ||
+    ![
+      "super_admin",
+      "admin",
+    ].includes(profile.role)
+  ) {
+    return {
+      error: "Not authorized.",
+      status: 403,
+    };
+  }
+
+  return {
+    user,
+    profile,
+  };
+}
+
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   context: RouteContext
 ) {
   try {
-    const supabase = await createClient();
+    const { id } =
+      await context.params;
+
+    const authorization =
+      await getCurrentAdmin();
+
+    if (
+      "error" in authorization
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            authorization.error,
+        },
+        {
+          status:
+            authorization.status,
+        }
+      );
+    }
 
     const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "You are not authenticated." },
-        { status: 401 }
-      );
-    }
-
-    const { data: currentProfile } = await supabase
-      .from("profiles")
-      .select("role, is_active, school_id")
-      .eq("id", currentUser.id)
-      .single();
+      user: currentUser,
+      profile: currentProfile,
+    } = authorization;
 
     const isSuperAdmin =
-      currentProfile?.role === "super_admin";
+      currentProfile.role ===
+      "super_admin";
 
-    const isSchoolAdmin =
-      currentProfile?.role === "admin";
+    const admin =
+      createAdminClient();
+
+    const {
+      data: targetUser,
+      error: targetError,
+    } = await admin
+      .from("profiles")
+      .select(
+        "id, full_name, email, role, is_active, school_id"
+      )
+      .eq("id", id)
+      .single();
 
     if (
-      !currentProfile ||
-      !currentProfile.is_active ||
-      (!isSuperAdmin && !isSchoolAdmin)
+      targetError ||
+      !targetUser
     ) {
       return NextResponse.json(
         {
           error:
-            "Administrator access is required.",
+            "User not found.",
         },
-        { status: 403 }
+        {
+          status: 404,
+        }
       );
     }
 
+    /*
+     * School Administrators can only
+     * manage users in their own school.
+     */
+    if (!isSuperAdmin) {
+      if (
+        !currentProfile.school_id ||
+        targetUser.school_id !==
+          currentProfile.school_id
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "You cannot manage users outside your school.",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+    }
+
+    /*
+     * Standard user management cannot
+     * modify another Super Administrator.
+     *
+     * The logged-in Super Administrator
+     * may still update their own name.
+     */
     if (
-      isSchoolAdmin &&
-      !currentProfile.school_id
+      targetUser.role ===
+        "super_admin" &&
+      targetUser.id !==
+        currentUser.id
     ) {
       return NextResponse.json(
         {
           error:
-            "Your administrator account is not assigned to a school.",
+            "Super Administrator accounts cannot be managed here.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const { id } = await context.params;
-    const body = await request.json();
+    const body =
+      await request.json();
 
     const fullName =
-      typeof body.fullName === "string"
+      typeof body.fullName ===
+      "string"
         ? body.fullName.trim()
         : "";
 
-    /*
-     * This endpoint deliberately supports
-     * only student and school-admin roles.
-     *
-     * Super Admin role changes require a
-     * separate protected workflow.
-     */
     const requestedRole =
-      body.role === "admin"
-        ? "admin"
-        : "student";
+      typeof body.role ===
+      "string"
+        ? body.role
+        : targetUser.role;
 
-    const isActive =
-      body.isActive === true;
+    const requestedActive =
+      typeof body.isActive ===
+      "boolean"
+        ? body.isActive
+        : targetUser.is_active;
+
+    const requestedSchoolId =
+      typeof body.schoolId ===
+      "string"
+        ? body.schoolId.trim()
+        : "";
+
+    const requestedClassIds =
+      Array.isArray(
+        body.classIds
+      )
+        ? Array.from(
+            new Set(
+              body.classIds.filter(
+                (
+                  value: unknown
+                ): value is string =>
+                  typeof value ===
+                    "string" &&
+                  value.length > 0
+              )
+            )
+          )
+        : [];
 
     if (!fullName) {
       return NextResponse.json(
@@ -109,202 +212,413 @@ export async function PATCH(
           error:
             "Full name is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
-
-    const adminSupabase =
-      createAdminClient();
-
-    /*
-     * Read the target through the trusted
-     * service-role client so we can perform
-     * authorization ourselves.
-     */
-    const {
-      data: targetProfile,
-      error: targetError,
-    } = await adminSupabase
-      .from("profiles")
-      .select(
-        "id, role, is_active, school_id"
-      )
-      .eq("id", id)
-      .maybeSingle();
 
     if (
-      targetError ||
-      !targetProfile
+      fullName.length > 150
     ) {
       return NextResponse.json(
-        { error: "User not found." },
-        { status: 404 }
+        {
+          error:
+            "Full name is too long.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     /*
-     * School Administrators are restricted
-     * to their own school.
+     * Super Administrator protection.
      */
-    if (isSchoolAdmin) {
+    if (
+      targetUser.role ===
+      "super_admin"
+    ) {
       if (
-        targetProfile.role ===
-        "super_admin"
+        targetUser.id !==
+        currentUser.id
       ) {
         return NextResponse.json(
           {
             error:
-              "School Administrators cannot manage a Super Administrator.",
+              "Super Administrator accounts cannot be modified.",
           },
-          { status: 403 }
+          {
+            status: 403,
+          }
         );
       }
 
-      if (
-        targetProfile.school_id !==
-        currentProfile.school_id
-      ) {
+      const {
+        error: updateError,
+      } = await admin
+        .from("profiles")
+        .update({
+          full_name: fullName,
+        })
+        .eq(
+          "id",
+          targetUser.id
+        );
+
+      if (updateError) {
         return NextResponse.json(
           {
             error:
-              "You can only manage users in your own school.",
+              updateError.message,
           },
-          { status: 403 }
+          {
+            status: 500,
+          }
         );
       }
+
+      return NextResponse.json({
+        success: true,
+      });
     }
 
     /*
-     * Protect the currently logged-in account.
+     * Only student/admin roles can
+     * be assigned through this API.
      */
-    if (id === currentUser.id) {
-      if (isSuperAdmin) {
-        /*
-         * This general user-management endpoint
-         * must never turn the current Super Admin
-         * into a school-level account.
-         */
-        if (
-          targetProfile.role !==
-          "super_admin"
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "Your Super Administrator account could not be verified.",
-            },
-            { status: 403 }
-          );
+    if (
+      requestedRole !==
+        "student" &&
+      requestedRole !== "admin"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid user role.",
+        },
+        {
+          status: 400,
         }
+      );
+    }
 
-        if (!isActive) {
-          return NextResponse.json(
-            {
-              error:
-                "You cannot deactivate your own Super Administrator account.",
-            },
-            { status: 400 }
-          );
-        }
-
-        /*
-         * Super Admin may edit their own name,
-         * but role remains super_admin.
-         */
-        const { error: updateError } =
-          await adminSupabase
-            .from("profiles")
-            .update({
-              full_name: fullName,
-            })
-            .eq("id", id);
-
-        if (updateError) {
-          return NextResponse.json(
-            {
-              error:
-                updateError.message,
-            },
-            { status: 400 }
-          );
-        }
-
-        return NextResponse.json({
-          success: true,
-        });
-      }
-
-      /*
-       * School Admin may edit their own name,
-       * but cannot demote or deactivate themselves.
-       */
-      if (requestedRole !== "admin") {
+    /*
+     * Users cannot change their own
+     * administrator role or deactivate
+     * their own account.
+     */
+    if (
+      targetUser.id ===
+      currentUser.id
+    ) {
+      if (
+        requestedRole !==
+        targetUser.role
+      ) {
         return NextResponse.json(
           {
             error:
-              "You cannot remove your own Administrator role.",
+              "You cannot change your own administrator role.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
         );
       }
 
-      if (!isActive) {
+      if (!requestedActive) {
         return NextResponse.json(
           {
             error:
               "You cannot deactivate your own account.",
           },
-          { status: 400 }
+          {
+            status: 400,
+          }
+        );
+      }
+    }
+
+    let finalSchoolId:
+      | string
+      | null =
+      targetUser.school_id;
+
+    /*
+     * Super Admin may transfer a user
+     * to another school.
+     *
+     * School Admin is always restricted
+     * to their own school.
+     */
+    if (isSuperAdmin) {
+      if (!requestedSchoolId) {
+        return NextResponse.json(
+          {
+            error:
+              "Please select a school.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const {
+        data: destinationSchool,
+        error: schoolError,
+      } = await admin
+        .from("schools")
+        .select(
+          "id, is_active"
+        )
+        .eq(
+          "id",
+          requestedSchoolId
+        )
+        .single();
+
+      if (
+        schoolError ||
+        !destinationSchool
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Selected school was not found.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      /*
+       * Existing users already assigned
+       * to an inactive school may still
+       * be edited without transferring.
+       * New transfers into an inactive
+       * school are not allowed.
+       */
+      if (
+        !destinationSchool.is_active &&
+        requestedSchoolId !==
+          targetUser.school_id
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "You cannot transfer a user to an inactive school.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      finalSchoolId =
+        requestedSchoolId;
+    } else {
+      if (
+        !currentProfile.school_id
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Your administrator account is not assigned to a school.",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+
+      finalSchoolId =
+        currentProfile.school_id;
+    }
+
+    /*
+     * Validate every requested class.
+     *
+     * All selected classes must belong
+     * to the user's final school.
+     */
+    if (
+      requestedRole ===
+        "student" &&
+      requestedClassIds.length >
+        0
+    ) {
+      const {
+        data: selectedClasses,
+        error: classesError,
+      } = await admin
+        .from("groups")
+        .select(
+          "id, school_id, is_active"
+        )
+        .in(
+          "id",
+          requestedClassIds
+        );
+
+      if (classesError) {
+        return NextResponse.json(
+          {
+            error:
+              classesError.message,
+          },
+          {
+            status: 500,
+          }
+        );
+      }
+
+      if (
+        !selectedClasses ||
+        selectedClasses.length !==
+          requestedClassIds.length
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "One or more selected classes could not be found.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      const invalidClass =
+        selectedClasses.find(
+          (classItem) =>
+            classItem.school_id !==
+              finalSchoolId ||
+            !classItem.is_active
+        );
+
+      if (invalidClass) {
+        return NextResponse.json(
+          {
+            error:
+              "Students can only be assigned to active classes in their school.",
+          },
+          {
+            status: 400,
+          }
         );
       }
     }
 
     /*
-     * A Super Admin account cannot be modified
-     * through the ordinary school-user controls.
-     *
-     * The only exception was the current Super
-     * Admin editing their own name above.
+     * Update the profile first.
      */
-    if (
-      targetProfile.role ===
-      "super_admin"
-    ) {
+    const {
+      error: profileError,
+    } = await admin
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        role: requestedRole,
+        is_active:
+          requestedActive,
+        school_id:
+          finalSchoolId,
+      })
+      .eq(
+        "id",
+        targetUser.id
+      );
+
+    if (profileError) {
       return NextResponse.json(
         {
           error:
-            "Super Administrator accounts cannot be modified from standard user management.",
+            profileError.message,
         },
-        { status: 403 }
+        {
+          status: 500,
+        }
       );
     }
 
     /*
-     * We deliberately do NOT update school_id.
+     * Membership synchronization.
      *
-     * This prevents the ordinary Manage User
-     * endpoint from moving users between schools.
-     * School transfers can get their own protected
-     * workflow later.
+     * First remove all existing class
+     * memberships for this user.
+     *
+     * This guarantees that a school
+     * transfer cannot leave the student
+     * inside classes from the old school.
+     *
+     * Administrators have no student
+     * class memberships.
      */
-    const { error: updateError } =
-      await adminSupabase
-        .from("profiles")
-        .update({
-          full_name: fullName,
-          role: requestedRole,
-          is_active: isActive,
-        })
-        .eq("id", id);
+    const {
+      error:
+        removeMembershipError,
+    } = await admin
+      .from("group_members")
+      .delete()
+      .eq(
+        "user_id",
+        targetUser.id
+      );
 
-    if (updateError) {
+    if (
+      removeMembershipError
+    ) {
       return NextResponse.json(
         {
           error:
-            updateError.message,
+            removeMembershipError.message,
         },
-        { status: 400 }
+        {
+          status: 500,
+        }
       );
+    }
+
+    /*
+     * Re-create the selected class
+     * memberships for students.
+     */
+    if (
+      requestedRole ===
+        "student" &&
+      requestedClassIds.length >
+        0
+    ) {
+      const rows =
+        requestedClassIds.map(
+          (classId) => ({
+            group_id:
+              classId,
+            user_id:
+              targetUser.id,
+          })
+        );
+
+      const {
+        error: insertError,
+      } = await admin
+        .from("group_members")
+        .insert(rows);
+
+      if (insertError) {
+        return NextResponse.json(
+          {
+            error:
+              insertError.message,
+          },
+          {
+            status: 500,
+          }
+        );
+      }
     }
 
     return NextResponse.json({
@@ -312,183 +626,154 @@ export async function PATCH(
     });
   } catch (error) {
     console.error(
-      "Update user API error:",
+      "Update user error:",
       error
     );
 
     return NextResponse.json(
       {
         error:
-          "An unexpected server error occurred.",
+          "Unable to update user.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
-/*
- * PUT
- *
- * Set a new password for a LearnBoard user.
- *
- * Existing passwords are never retrieved
- * or displayed.
- */
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   context: RouteContext
 ) {
   try {
-    const supabase = await createClient();
+    const { id } =
+      await context.params;
+
+    const authorization =
+      await getCurrentAdmin();
+
+    if (
+      "error" in authorization
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            authorization.error,
+        },
+        {
+          status:
+            authorization.status,
+        }
+      );
+    }
 
     const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "You are not authenticated." },
-        { status: 401 }
-      );
-    }
-
-    const { data: currentProfile } = await supabase
-      .from("profiles")
-      .select("role, is_active, school_id")
-      .eq("id", currentUser.id)
-      .single();
+      profile: currentProfile,
+    } = authorization;
 
     const isSuperAdmin =
-      currentProfile?.role === "super_admin";
+      currentProfile.role ===
+      "super_admin";
 
-    const isSchoolAdmin =
-      currentProfile?.role === "admin";
-
-    if (
-      !currentProfile ||
-      !currentProfile.is_active ||
-      (!isSuperAdmin && !isSchoolAdmin)
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Administrator access is required.",
-        },
-        { status: 403 }
-      );
-    }
-
-    if (
-      isSchoolAdmin &&
-      !currentProfile.school_id
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Your administrator account is not assigned to a school.",
-        },
-        { status: 403 }
-      );
-    }
-
-    const { id } = await context.params;
-    const body = await request.json();
-
-    const password =
-      typeof body.password === "string"
-        ? body.password
-        : "";
-
-    if (password.length < 8) {
-      return NextResponse.json(
-        {
-          error:
-            "New password must be at least 8 characters.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const adminSupabase =
+    const admin =
       createAdminClient();
 
     const {
-      data: targetProfile,
+      data: targetUser,
       error: targetError,
-    } = await adminSupabase
+    } = await admin
       .from("profiles")
       .select(
         "id, role, school_id"
       )
       .eq("id", id)
-      .maybeSingle();
+      .single();
 
     if (
       targetError ||
-      !targetProfile
+      !targetUser
     ) {
       return NextResponse.json(
-        { error: "User not found." },
-        { status: 404 }
+        {
+          error:
+            "User not found.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
     /*
-     * School Admin may reset passwords only
-     * for users belonging to their own school.
-     */
-    if (isSchoolAdmin) {
-      if (
-        targetProfile.role ===
-        "super_admin"
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "School Administrators cannot reset a Super Administrator password.",
-          },
-          { status: 403 }
-        );
-      }
-
-      if (
-        targetProfile.school_id !==
-        currentProfile.school_id
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "You can only reset passwords for users in your own school.",
-          },
-          { status: 403 }
-        );
-      }
-    }
-
-    /*
-     * A Super Admin may reset passwords for
-     * school-level users.
-     *
-     * For additional protection, Super Admin
-     * passwords themselves are not reset through
-     * this general user-management endpoint.
+     * Never reset a Super Admin password
+     * through normal user management.
      */
     if (
-      targetProfile.role ===
+      targetUser.role ===
       "super_admin"
     ) {
       return NextResponse.json(
         {
           error:
-            "Super Administrator passwords cannot be reset from standard user management.",
+            "Super Administrator passwords cannot be changed here.",
         },
-        { status: 403 }
+        {
+          status: 403,
+        }
       );
     }
 
-    const { error: passwordError } =
-      await adminSupabase.auth.admin.updateUserById(
-        id,
+    /*
+     * School Admin may only reset
+     * passwords inside their school.
+     */
+    if (!isSuperAdmin) {
+      if (
+        !currentProfile.school_id ||
+        targetUser.school_id !==
+          currentProfile.school_id
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "You cannot manage users outside your school.",
+          },
+          {
+            status: 403,
+          }
+        );
+      }
+    }
+
+    const body =
+      await request.json();
+
+    const password =
+      typeof body.password ===
+      "string"
+        ? body.password
+        : "";
+
+    if (
+      password.length < 8
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Password must be at least 8 characters.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const {
+      error: passwordError,
+    } =
+      await admin.auth.admin.updateUserById(
+        targetUser.id,
         {
           password,
         }
@@ -500,27 +785,29 @@ export async function PUT(
           error:
             passwordError.message,
         },
-        { status: 400 }
+        {
+          status: 500,
+        }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message:
-        "Password updated successfully.",
     });
   } catch (error) {
     console.error(
-      "Password reset API error:",
+      "Reset password error:",
       error
     );
 
     return NextResponse.json(
       {
         error:
-          "An unexpected server error occurred.",
+          "Unable to update password.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
