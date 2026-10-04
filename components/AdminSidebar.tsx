@@ -10,291 +10,412 @@ type AdminSidebarProps = {
   email: string;
 };
 
-type IconProps = {
-  className?: string;
+type NavigationItem = {
+  name: string;
+  href: string;
+  icon:
+    | "dashboard"
+    | "schools"
+    | "users"
+    | "subjects"
+    | "games"
+    | "paths"
+    | "reports"
+    | "settings";
+  superAdminOnly?: boolean;
 };
 
-function DashboardIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
-    </svg>
-  );
-}
-
-function SchoolIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M3 21h18" />
-      <path d="M5 21V9l7-4 7 4v12" />
-      <path d="M9 21v-6h6v6" />
-      <path d="M8 11h2" />
-      <path d="M14 11h2" />
-    </svg>
-  );
-}
-
-function UsersIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function GamesIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M6 8h12a4 4 0 0 1 3.8 5.3l-1.2 3.5a2.5 2.5 0 0 1-4.2.9L14.8 16H9.2l-1.6 1.7a2.5 2.5 0 0 1-4.2-.9l-1.2-3.5A4 4 0 0 1 6 8Z" />
-      <path d="M7 12v4" />
-      <path d="M5 14h4" />
-      <circle cx="17" cy="13" r=".7" fill="currentColor" />
-      <circle cx="19" cy="15" r=".7" fill="currentColor" />
-    </svg>
-  );
-}
-
-function PathIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="6" cy="5" r="2" />
-      <circle cx="18" cy="19" r="2" />
-      <path d="M6 7v4a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3" />
-    </svg>
-  );
-}
-
-function ReportsIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M4 20V10" />
-      <path d="M10 20V4" />
-      <path d="M16 20v-7" />
-      <path d="M22 20H2" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ className }: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.5 1a7 7 0 0 0-1.8-1L14.3 3h-4.1L9.8 6a7 7 0 0 0-1.8 1L5.5 6 3.5 9.5 5.5 11a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.5-1a7 7 0 0 0 1.8 1l.4 3h4.1l.4-3a7 7 0 0 0 1.8-1l2.5 1 2-3.5-2-1.5a7 7 0 0 0 .1-1Z" />
-    </svg>
-  );
-}
+const navigation: NavigationItem[] = [
+  {
+    name: "Dashboard",
+    href: "/admin",
+    icon: "dashboard",
+  },
+  {
+    name: "Schools",
+    href: "/admin/schools",
+    icon: "schools",
+    superAdminOnly: true,
+  },
+  {
+    name: "Users",
+    href: "/admin/users",
+    icon: "users",
+  },
+  {
+    name: "Subjects & Skills",
+    href: "/admin/subjects",
+    icon: "subjects",
+  },
+  {
+    name: "Games",
+    href: "/admin/games",
+    icon: "games",
+  },
+  {
+    name: "Learning Paths",
+    href: "/admin/paths",
+    icon: "paths",
+  },
+  {
+    name: "Reports",
+    href: "/admin/reports",
+    icon: "reports",
+  },
+  {
+    name: "Settings",
+    href: "/admin/settings",
+    icon: "settings",
+  },
+];
 
 export default function AdminSidebar({
   role,
   fullName,
   email,
 }: AdminSidebarProps) {
-  const pathname = usePathname();
+  const pathname =
+    usePathname();
 
-  const isSuperAdmin = role === "super_admin";
-
-  const navigation = [
-    {
-      name: "Dashboard",
-      href: "/admin",
-      visible: true,
-      icon: DashboardIcon,
-    },
-    {
-      name: "Schools",
-      href: "/admin/schools",
-      visible: isSuperAdmin,
-      icon: SchoolIcon,
-    },
-    {
-      name: "Users",
-      href: "/admin/users",
-      visible: true,
-      icon: UsersIcon,
-    },
-    {
-      name: "Games",
-      href: "/admin/games",
-      visible: true,
-      icon: GamesIcon,
-    },
-    {
-      name: "Learning Paths",
-      href: "/admin/paths",
-      visible: true,
-      icon: PathIcon,
-    },
-    {
-      name: "Reports",
-      href: "/admin/reports",
-      visible: true,
-      icon: ReportsIcon,
-    },
-    {
-      name: "Settings",
-      href: "/admin/settings",
-      visible: true,
-      icon: SettingsIcon,
-    },
-  ];
+  const isSuperAdmin =
+    role === "super_admin";
 
   const displayName =
     fullName?.trim() ||
     email ||
     "Administrator";
 
-  const initials =
-    displayName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join("") || "A";
+  const roleLabel =
+    isSuperAdmin
+      ? "Super Admin"
+      : "School Admin";
 
-  const roleLabel = isSuperAdmin
-    ? "Super Administrator"
-    : "School Administrator";
+  const initials =
+    getInitials(displayName);
+
+  const visibleNavigation =
+    navigation.filter(
+      (item) =>
+        !item.superAdminOnly ||
+        isSuperAdmin
+    );
 
   return (
-    <aside className="sticky top-0 flex h-screen w-72 shrink-0 flex-col bg-[#0F172A] px-5 py-6 text-white">
-      {/* Brand */}
-      <div className="mb-9 flex items-center gap-3 px-2">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#6366F1] text-xl font-bold text-white shadow-lg shadow-indigo-950/20">
-          L
-        </div>
+    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col bg-[#0F172A]">
 
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-white">
-            LearnBoard
-          </h1>
+      <div className="flex h-[82px] items-center border-b border-white/[0.06] px-6">
 
-          <p className="text-sm text-[#94A3B8]">
-            LMS
-          </p>
-        </div>
+        <Link
+          href="/admin"
+          className="flex items-center gap-3"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6366F1] text-lg font-bold text-white shadow-sm">
+            L
+          </div>
+
+          <div>
+            <p className="text-[17px] font-bold tracking-tight text-white">
+              LearnBoard
+            </p>
+
+            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.18em] text-[#7F93B5]">
+              LMS
+            </p>
+          </div>
+        </Link>
+
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1.5">
-        {navigation
-          .filter((item) => item.visible)
-          .map((item) => {
-            const active =
-              item.href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(item.href);
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
 
-            const Icon = item.icon;
+        <div className="space-y-1">
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`group flex items-center gap-3 rounded-xl border-l-4 px-3 py-3.5 text-[15px] font-medium transition-all ${
-                  active
-                    ? "border-[#818CF8] bg-[#263248] text-white"
-                    : "border-transparent text-[#B8C7E0] hover:bg-[#1E293B] hover:text-white"
-                }`}
-              >
-                <Icon
-                  className={`h-[18px] w-[18px] shrink-0 ${
+          {visibleNavigation.map(
+            (item) => {
+              const active =
+                isNavigationActive(
+                  pathname,
+                  item.href
+                );
+
+              return (
+                <Link
+                  key={
+                    item.href
+                  }
+                  href={
+                    item.href
+                  }
+                  className={`group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${
                     active
-                      ? "text-[#A5B4FC]"
-                      : "text-[#8FB5F5] group-hover:text-[#A5B4FC]"
+                      ? "bg-[#263248] text-white"
+                      : "text-[#B8C7E0] hover:bg-[#1E293B] hover:text-white"
                   }`}
-                />
+                >
+                  {active && (
+                    <span className="absolute -left-3 top-2.5 h-6 w-1 rounded-r-full bg-[#6366F1]" />
+                  )}
 
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
+                  <span
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center ${
+                      active
+                        ? "text-[#A5B4FC]"
+                        : "text-[#8FA6CC] group-hover:text-[#B8C7E0]"
+                    }`}
+                  >
+                    <NavigationIcon
+                      icon={
+                        item.icon
+                      }
+                    />
+                  </span>
+
+                  <span>
+                    {item.name}
+                  </span>
+                </Link>
+              );
+            }
+          )}
+
+        </div>
+
       </nav>
 
-      {/* Account */}
-      <div className="border-t border-[#29364D] pt-5">
+      <div className="border-t border-white/[0.06] p-4">
+
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-          {/* Avatar */}
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#334155] text-sm font-bold text-white">
+
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#263248] text-xs font-bold uppercase text-[#C7D2FE]">
             {initials}
           </div>
 
-          {/* User information */}
           <div className="min-w-0 flex-1">
+
             <p className="truncate text-sm font-semibold text-white">
               {displayName}
             </p>
 
-            <p className="truncate text-xs text-[#8FA6CC]">
+            <p className="mt-0.5 truncate text-xs text-[#7F93B5]">
               {roleLabel}
             </p>
+
           </div>
 
-          {/* Logout icon */}
-          <LogoutButton iconOnly />
+          <LogoutButton
+            iconOnly
+          />
+
         </div>
+
       </div>
+
     </aside>
+  );
+}
+
+function isNavigationActive(
+  pathname: string,
+  href: string
+) {
+  if (href === "/admin") {
+    return pathname === "/admin";
+  }
+
+  return (
+    pathname === href ||
+    pathname.startsWith(
+      `${href}/`
+    )
+  );
+}
+
+function getInitials(
+  value: string
+) {
+  const parts = value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (
+    parts.length === 0
+  ) {
+    return "A";
+  }
+
+  if (
+    parts.length === 1
+  ) {
+    return parts[0]
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  return `${parts[0][0]}${
+    parts[
+      parts.length - 1
+    ][0]
+  }`.toUpperCase();
+}
+
+function NavigationIcon({
+  icon,
+}: {
+  icon: NavigationItem["icon"];
+}) {
+  const commonProps = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap:
+      "round" as const,
+    strokeLinejoin:
+      "round" as const,
+    className: "h-5 w-5",
+    "aria-hidden":
+      true as const,
+  };
+
+  if (
+    icon === "dashboard"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <rect
+          x="3"
+          y="3"
+          width="7"
+          height="7"
+          rx="1.5"
+        />
+        <rect
+          x="14"
+          y="3"
+          width="7"
+          height="7"
+          rx="1.5"
+        />
+        <rect
+          x="3"
+          y="14"
+          width="7"
+          height="7"
+          rx="1.5"
+        />
+        <rect
+          x="14"
+          y="14"
+          width="7"
+          height="7"
+          rx="1.5"
+        />
+      </svg>
+    );
+  }
+
+  if (
+    icon === "schools"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <path d="m3 10 9-6 9 6" />
+        <path d="M5 9v10" />
+        <path d="M19 9v10" />
+        <path d="M9 19v-5h6v5" />
+        <path d="M3 19h18" />
+      </svg>
+    );
+  }
+
+  if (
+    icon === "users"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle
+          cx="9"
+          cy="7"
+          r="4"
+        />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+
+  if (
+    icon === "subjects"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22V5.5Z" />
+        <path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22V5.5Z" />
+        <path d="M7 7h2" />
+        <path d="M15 7h2" />
+        <path d="M7 10h2" />
+        <path d="M15 10h2" />
+      </svg>
+    );
+  }
+
+  if (
+    icon === "games"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <path d="M8 9h8a5 5 0 0 1 4.8 6.4l-.7 2.2a2 2 0 0 1-3.3.8L14.4 16H9.6l-2.4 2.4a2 2 0 0 1-3.3-.8l-.7-2.2A5 5 0 0 1 8 9Z" />
+        <path d="M8 13h3" />
+        <path d="M9.5 11.5v3" />
+        <path d="M16 12.5h.01" />
+        <path d="M18 14.5h.01" />
+      </svg>
+    );
+  }
+
+  if (
+    icon === "paths"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <circle
+          cx="6"
+          cy="18"
+          r="2"
+        />
+        <circle
+          cx="18"
+          cy="6"
+          r="2"
+        />
+        <path d="M8 18h3a3 3 0 0 0 3-3V9a3 3 0 0 1 3-3h-1" />
+      </svg>
+    );
+  }
+
+  if (
+    icon === "reports"
+  ) {
+    return (
+      <svg {...commonProps}>
+        <path d="M4 20V10" />
+        <path d="M10 20V4" />
+        <path d="M16 20v-7" />
+        <path d="M22 20H2" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...commonProps}>
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+      />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.14.37.36.7.64.96.3.28.69.44 1.1.44H21a2 2 0 1 1 0 4h-.09A1.7 1.7 0 0 0 19.4 15Z" />
+    </svg>
   );
 }
