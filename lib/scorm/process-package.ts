@@ -495,7 +495,7 @@ export async function processScormPackage({
     };
   }
 
-  await admin
+  const { error: processingStartError } = await admin
     .from("scorm_packages")
     .update({
       processing_status:
@@ -503,6 +503,8 @@ export async function processScormPackage({
       processing_error: null,
     })
     .eq("id", packageId);
+
+  if (processingStartError) return { success: false, error: "Unable to start package processing." };
 
   try {
     const {
@@ -674,7 +676,7 @@ export async function processScormPackage({
     const resolvedLaunchFile =
       launchEntry.path;
 
-    await admin
+    const { error: packageSaveError } = await admin
       .from("scorm_packages")
       .update({
         scorm_version:
@@ -691,7 +693,9 @@ export async function processScormPackage({
       })
       .eq("id", packageId);
 
-    await admin
+    if (packageSaveError) throw new Error("Unable to save extracted package metadata.");
+
+    const { error: gameSaveError } = await admin
       .from("games")
       .update({
         scorm_version:
@@ -702,6 +706,8 @@ export async function processScormPackage({
           extractionPath,
       })
       .eq("id", gameId);
+
+    if (gameSaveError) throw new Error("Unable to attach the extracted package to the game.");
 
     return {
       success: true,

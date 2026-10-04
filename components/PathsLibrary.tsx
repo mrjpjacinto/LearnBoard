@@ -1,0 +1,10 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import type { LearningPath } from "@/lib/lms/types";
+import { Card, Empty, Badge, inputClass } from "./LmsUi";
+export default function PathsLibrary({ paths, schools, isSuperAdmin }: { paths: LearningPath[]; schools: { id: string; name: string }[]; isSuperAdmin: boolean }) {
+  const [search, setSearch] = useState(""), [status, setStatus] = useState("all"), [school, setSchool] = useState("all");
+  const shown = paths.filter(p => `${p.name} ${p.description || ""}`.toLowerCase().includes(search.toLowerCase()) && (status === "all" || p.status === status) && (school === "all" || p.school_id === school));
+  return <><div className="mb-6 grid gap-3 sm:grid-cols-3"><input aria-label="Search paths" className={inputClass} placeholder="Search Learning Paths..." value={search} onChange={e => setSearch(e.target.value)} /><select aria-label="Path status" className={inputClass} value={status} onChange={e => setStatus(e.target.value)}><option value="all">All Statuses</option><option value="active">Active</option><option value="archived">Archived</option></select>{isSuperAdmin && <select aria-label="School" className={inputClass} value={school} onChange={e => setSchool(e.target.value)}><option value="all">All Schools</option>{schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</div>{shown.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{shown.map(p => <Link key={p.id} href={`/admin/paths/${p.id}`}><Card className="h-full transition hover:border-[#A5B4FC]"><Badge>{p.status === "active" ? "Active" : "Archived"}</Badge><h2 className="mt-3 text-lg font-bold text-[#172033]">{p.name}</h2><p className="mt-2 line-clamp-3 text-sm text-[#667085]">{p.description || "No description added."}</p><p className="mt-4 text-xs text-[#667085]">{schools.find(s => s.id === p.school_id)?.name || "School unavailable"}</p></Card></Link>)}</div> : <Empty title="No Learning Paths found">Create a path or adjust your filters.</Empty>}</>;
+}

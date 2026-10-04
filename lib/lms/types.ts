@@ -1,0 +1,11 @@
+export type Profile = { id: string; full_name: string | null; email: string | null; role: string; school_id: string | null; is_active: boolean };
+export type LearningPath = { id: string; name: string; description: string | null; status: string; school_id: string; updated_at: string };
+export type Game = { id: string; name: string; description: string | null; image_path: string | null; subject_id: string | null; skill_id: string | null; status: string };
+export type Schedule = { available_from: string | null; available_until: string | null; max_attempts: number | null; time_limit_minutes: number | null; passing_score: number; allow_resume: boolean; status: string };
+export type Assignment = Schedule & { id: string; board_id: string | null; game_id: string | null; student_id: string; school_id: string; group_assignment_id: string | null };
+export type ClassAssignment = Schedule & { id: string; board_id: string; group_id: string };
+export type Attempt = { id: string; assignment_id: string | null; student_id: string; game_id: string; package_id: string | null; attempt_number: number; started_at: string; completed_at: string | null; score: number | null; status: string; completion_status: string | null; success_status: string | null; time_spent_seconds: number };
+export type RuntimeData = { attempt_id: string; raw_data: Record<string, string> | null; suspend_data: string | null; location: string | null; total_time_seconds: number | null };
+export const assignmentColumns = "id,board_id,game_id,student_id,school_id,group_assignment_id,available_from,available_until,max_attempts,time_limit_minutes,passing_score,allow_resume,status";
+export const classAssignmentColumns = "id,board_id,group_id,available_from,available_until,max_attempts,time_limit_minutes,passing_score,allow_resume,status";
+export const attemptColumns = "id,assignment_id,student_id,game_id,package_id,attempt_number,started_at,completed_at,score,status,completion_status,success_status,time_spent_seconds";

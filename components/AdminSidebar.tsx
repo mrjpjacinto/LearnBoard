@@ -20,6 +20,7 @@ type NavigationItem = {
     | "subjects"
     | "games"
     | "paths"
+    | "assignments"
     | "reports"
     | "settings";
   superAdminOnly?: boolean;
@@ -56,6 +57,11 @@ const navigation: NavigationItem[] = [
     name: "Learning Paths",
     href: "/admin/paths",
     icon: "paths",
+  },
+  {
+    name: "Assignments",
+    href: "/admin/assignments",
+    icon: "assignments",
   },
   {
     name: "Reports",
@@ -101,9 +107,9 @@ export default function AdminSidebar({
     );
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[260px] shrink-0 flex-col bg-[#0F172A]">
+    <aside className="sticky top-0 flex h-screen w-[76px] md:w-[260px] shrink-0 flex-col bg-[#0F172A]">
 
-      <div className="flex h-[82px] items-center border-b border-white/[0.06] px-6">
+      <div className="flex h-[82px] items-center border-b border-white/[0.06] px-4 md:px-6">
 
         <Link
           href="/admin"
@@ -113,7 +119,7 @@ export default function AdminSidebar({
             L
           </div>
 
-          <div>
+          <div className="hidden md:block">
             <p className="text-[17px] font-bold tracking-tight text-white">
               LearnBoard
             </p>
@@ -146,6 +152,8 @@ export default function AdminSidebar({
                   href={
                     item.href
                   }
+                  title={item.name}
+                  aria-label={item.name}
                   className={`group relative flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${
                     active
                       ? "bg-[#263248] text-white"
@@ -170,7 +178,7 @@ export default function AdminSidebar({
                     />
                   </span>
 
-                  <span>
+                  <span className="hidden md:inline">
                     {item.name}
                   </span>
                 </Link>
@@ -186,11 +194,11 @@ export default function AdminSidebar({
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
 
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#263248] text-xs font-bold uppercase text-[#C7D2FE]">
+          <div className="hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#263248] text-xs font-bold uppercase text-[#C7D2FE]">
             {initials}
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="hidden md:block min-w-0 flex-1">
 
             <p className="truncate text-sm font-semibold text-white">
               {displayName}
@@ -376,7 +384,7 @@ function NavigationIcon({
   }
 
   if (
-    icon === "paths"
+    icon === "paths" || icon === "assignments"
   ) {
     return (
       <svg {...commonProps}>

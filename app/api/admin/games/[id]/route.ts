@@ -101,7 +101,7 @@ export async function PATCH(
     } = await admin
       .from("games")
       .select(
-        "id, image_path"
+        "id, image_path, subject_id"
       )
       .eq("id", id)
       .maybeSingle();
@@ -198,6 +198,8 @@ export async function PATCH(
         }
       );
     }
+
+    if (name.length > 150 || description.length > 1000) return NextResponse.json({ error: "Game title or description is too long." }, { status: 400 });
 
     if (!subjectId) {
       return NextResponse.json(
@@ -348,6 +350,7 @@ export async function PATCH(
         | string
         | null;
       subject_id: string;
+      skill_id?: null;
       orientation_mode: string;
       image_path?: string;
       updated_at: string;
@@ -361,6 +364,8 @@ export async function PATCH(
       updated_at:
         new Date().toISOString(),
     };
+
+    if (existingGame.subject_id !== subjectId) updateValues.skill_id = null;
 
     if (newImagePath) {
       updateValues.image_path =

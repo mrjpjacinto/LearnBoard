@@ -2,7 +2,6 @@
 
 import {
   FormEvent,
-  useEffect,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -43,8 +42,7 @@ export default function AddUserForm({
       "student"
     );
 
-  const [schoolId, setSchoolId] =
-    useState("");
+  const [schoolId, setSchoolId] = useState(!isSuperAdmin && schools.filter(s => s.is_active).length === 1 ? schools.find(s => s.is_active)!.id : "");
 
   const [saving, setSaving] =
     useState(false);
@@ -57,20 +55,6 @@ export default function AddUserForm({
       (school) =>
         school.is_active
     );
-
-  useEffect(() => {
-    if (
-      !isSuperAdmin &&
-      activeSchools.length === 1
-    ) {
-      setSchoolId(
-        activeSchools[0].id
-      );
-    }
-  }, [
-    isSuperAdmin,
-    activeSchools,
-  ]);
 
   function resetForm() {
     setFullName("");

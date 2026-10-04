@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { processScormPackage } from "@/lib/scorm/process-package";
 
+import { removeScormPrefix } from "@/lib/scorm/storage";
+
 export const runtime = "nodejs";
 
 const MAX_IMAGE_SIZE =
@@ -661,10 +663,7 @@ export async function POST(
      * package. Clean database records
      * associated with this game.
      */
-    await admin
-      .from("scorm_runtime_data")
-      .delete()
-      .eq("game_id", game.id);
+    try { await removeScormPrefix(admin, game.id); } catch (cleanupError) { console.error("Failed game package cleanup:", cleanupError); }
 
     await admin
       .from("scorm_packages")

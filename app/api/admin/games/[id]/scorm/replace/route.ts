@@ -9,12 +9,6 @@ type RouteContext = {
   }>;
 };
 
-type ExistingPackage = {
-  id: string;
-  storage_path: string | null;
-  extraction_path: string | null;
-};
-
 const MAX_SCORM_SIZE =
   150 * 1024 * 1024;
 
@@ -270,9 +264,12 @@ export async function POST(
       );
     }
 
-    const existingPackages =
-      (existingPackageData ||
-        []) as ExistingPackage[];
+    // Retained package versions remain available to historical attempts.
+    void existingPackageData;
+
+    const history = await admin.from("attempts").select("id", { count: "exact", head: true }).eq("game_id", id);
+    if (history.error) return NextResponse.json({ error: "Unable to check student attempt history." }, { status: 500 });
+
 
     const cleanFileName =
       safeFileName(
@@ -503,93 +500,9 @@ export async function POST(
       processingResult.extractionPath ||
       `${id}/packages/${confirmedPackageId}/extracted`;
 
-    /*
-     * STEP 4B:
-     * Candidate succeeded.
-     *
-     * Only now are packages that existed
-     * before this request retired.
-     */
-    for (
-      const oldPackage
-      of existingPackages
-    ) {
-      /*
-       * Defensive protection:
-       * never remove the newly created
-       * candidate package.
-       */
-      if (
-        oldPackage.id ===
-        confirmedPackageId
-      ) {
-        continue;
-      }
-
-      /*
-       * Remove old extracted files.
-       */
-      if (
-        oldPackage.extraction_path &&
-        oldPackage.extraction_path !==
-          newExtractionPath
-      ) {
-        await removeStoragePrefix(
-          admin,
-          oldPackage.extraction_path
-        );
-      }
-
-      /*
-       * Remove the old original ZIP.
-       */
-      if (
-        oldPackage.storage_path &&
-        oldPackage.storage_path !==
-          newStoragePath
-      ) {
-        const {
-          error:
-            oldZipDeleteError,
-        } = await admin.storage
-          .from("scorm-packages")
-          .remove([
-            oldPackage.storage_path,
-          ]);
-
-        if (
-          oldZipDeleteError
-        ) {
-          console.error(
-            `Old SCORM ZIP cleanup failed for package ${oldPackage.id}:`,
-            oldZipDeleteError
-          );
-        }
-      }
-
-      /*
-       * Remove the old database row.
-       */
-      const {
-        error:
-          oldRecordDeleteError,
-      } = await admin
-        .from("scorm_packages")
-        .delete()
-        .eq(
-          "id",
-          oldPackage.id
-        );
-
-      if (
-        oldRecordDeleteError
-      ) {
-        console.error(
-          `Old SCORM package record cleanup failed for package ${oldPackage.id}:`,
-          oldRecordDeleteError
-        );
-      }
-    }
+    // Retain previous versions, including packages that may have been launched
+    // concurrently with this replacement. New attempts use the game's active pointers.
+    // Historical attempts stay bound to their original package ID.
 
     /*
      * STEP 5:

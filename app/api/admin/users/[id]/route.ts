@@ -512,114 +512,12 @@ export async function PATCH(
       }
     }
 
-    /*
-     * Update the profile first.
-     */
-    const {
-      error: profileError,
-    } = await admin
-      .from("profiles")
-      .update({
-        full_name: fullName,
-        role: requestedRole,
-        is_active:
-          requestedActive,
-        school_id:
-          finalSchoolId,
-      })
-      .eq(
-        "id",
-        targetUser.id
-      );
-
-    if (profileError) {
-      return NextResponse.json(
-        {
-          error:
-            profileError.message,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
-    /*
-     * Membership synchronization.
-     *
-     * First remove all existing class
-     * memberships for this user.
-     *
-     * This guarantees that a school
-     * transfer cannot leave the student
-     * inside classes from the old school.
-     *
-     * Administrators have no student
-     * class memberships.
-     */
-    const {
-      error:
-        removeMembershipError,
-    } = await admin
-      .from("group_members")
-      .delete()
-      .eq(
-        "user_id",
-        targetUser.id
-      );
-
-    if (
-      removeMembershipError
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            removeMembershipError.message,
-        },
-        {
-          status: 500,
-        }
-      );
-    }
-
-    /*
-     * Re-create the selected class
-     * memberships for students.
-     */
-    if (
-      requestedRole ===
-        "student" &&
-      requestedClassIds.length >
-        0
-    ) {
-      const rows =
-        requestedClassIds.map(
-          (classId) => ({
-            group_id:
-              classId,
-            user_id:
-              targetUser.id,
-          })
-        );
-
-      const {
-        error: insertError,
-      } = await admin
-        .from("group_members")
-        .insert(rows);
-
-      if (insertError) {
-        return NextResponse.json(
-          {
-            error:
-              insertError.message,
-          },
-          {
-            status: 500,
-          }
-        );
-      }
-    }
+    const { error: updateError } = await admin.rpc("learnboard_update_user", {
+      p_actor: currentUser.id, p_target: targetUser.id, p_name: fullName,
+      p_role: requestedRole, p_active: requestedActive, p_school: finalSchoolId,
+      p_classes: requestedRole === "student" ? requestedClassIds : [],
+    });
+    if (updateError) return NextResponse.json({ error: updateError.code === "PGRST202" ? "The LMS database update is required to save users safely." : updateError.code === "P0001" ? updateError.message : "Unable to update the user and class memberships." }, { status: updateError.code === "PGRST202" ? 503 : 400 });
 
     return NextResponse.json({
       success: true,

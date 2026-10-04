@@ -6,6 +6,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import GameEditForm from "@/components/GameEditForm";
+import GamePublishing from "@/components/GamePublishing";
 import ScormPackageActions from "@/components/ScormPackageActions";
 
 type PageProps = {
@@ -187,6 +188,8 @@ export default async function GameManagePage({
         `
       )
       .eq("game_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     packageRecord =
@@ -339,6 +342,7 @@ export default async function GameManagePage({
           }
         >
           <div>
+            {isSuperAdmin && <div className="mb-4"><GamePublishing gameId={game.id} status={game.status} /></div>}
             <GameEditForm
               game={{
                 id: game.id,

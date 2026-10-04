@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -94,11 +93,11 @@ export default function ClassesTable({
       memberships
     );
 
-  useEffect(() => {
-    setLocalMemberships(
-      memberships
-    );
-  }, [memberships]);
+  const [previousMemberships, setPreviousMemberships] = useState(memberships);
+  if (memberships !== previousMemberships) {
+    setPreviousMemberships(memberships);
+    setLocalMemberships(memberships);
+  }
 
   const schoolMap =
     useMemo(

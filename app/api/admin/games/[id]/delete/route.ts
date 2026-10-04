@@ -121,6 +121,9 @@ export async function DELETE(
       );
     }
 
+    const history = await admin.from("attempts").select("id", { count: "exact", head: true }).eq("game_id", id);
+    if (history.error || (history.count || 0) > 0) return NextResponse.json({ error: "Games with student attempts retain their content and results. Unpublish the game to stop new launches." }, { status: 409 });
+
     /*
      * Load every SCORM package row.
      * Using an array also handles older

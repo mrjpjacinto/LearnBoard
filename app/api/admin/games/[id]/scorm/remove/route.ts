@@ -91,7 +91,7 @@ export async function DELETE(
       error: gameError,
     } = await admin
       .from("games")
-      .select("id")
+      .select("id,scorm_version,launch_file,package_path")
       .eq("id", id)
       .maybeSingle();
 
@@ -123,6 +123,9 @@ export async function DELETE(
         }
       );
     }
+
+    const history = await admin.from("attempts").select("id", { count: "exact", head: true }).eq("game_id", id);
+    if (history.error || (history.count || 0) > 0) return NextResponse.json({ error: "Games with student attempts retain their content and results. Unpublish the game to stop new launches." }, { status: 409 });
 
     /*
      * Load ALL package rows attached
@@ -238,6 +241,8 @@ export async function DELETE(
       .eq("game_id", id);
 
     if (deleteRecordsError) {
+      const restore = await admin.from("games").update({ scorm_version: game.scorm_version, launch_file: game.launch_file, package_path: game.package_path }).eq("id", id);
+      if (restore.error) console.error("Unable to restore package pointers:", restore.error);
       console.error(
         "Unable to delete SCORM package records:",
         deleteRecordsError
@@ -253,7 +258,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "The game was detached from the package, but the package records could not be removed.",
+            "The package could not be removed. Student history or another database record may depend on it.",
         },
         {
           status: 500,
