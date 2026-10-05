@@ -1,19 +1,18 @@
 import Link from "next/link";
 import type { StudentLearning } from "@/lib/lms/student-data";
-import { availability } from "@/lib/lms/rules";
-import { Workspace, Card, Empty, Badge, secondaryClass } from "./LmsUi";
-import LogoutButton from "./LogoutButton";
-import LaunchLearningButton from "./LaunchLearningButton";
-export default function StudentDashboard({ name, learning }: { name: string; learning: StudentLearning[] }) {
-  return <div className="min-h-screen bg-[#F4F7FB]"><Workspace title={`Welcome, ${name}`} description="Your assigned Learning Paths, games, progress, and results." actions={<div className="flex gap-3"><Link className={secondaryClass} href="/student/settings">Account Settings</Link><LogoutButton /></div>}>{learning.length ? <div className="space-y-5">{learning.map(item => {
-    const completed = item.games.filter(g => item.attempts.some(a => a.game_id === g.id && a.completion_status === "completed")).length;
-    const state = availability(item);
-    return <Card key={item.key}><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-bold text-[#172033]">{item.title}</h2><p className="mt-1 text-sm text-[#667085]">{item.description}</p>{item.className && <p className="mt-2 text-xs text-[#667085]">Class: {item.className}</p>}</div><Badge>{state}</Badge></div><p className="mt-4 text-sm font-semibold text-[#344054]">{completed} / {item.games.length} games completed</p><div role="progressbar" aria-valuenow={completed} aria-valuemin={0} aria-valuemax={item.games.length || 1} aria-label={`${item.title} progress`} className="mt-2 h-2 overflow-hidden rounded-full bg-[#EEF0FF]"><div className="h-full bg-[#6366F1]" style={{ width: `${item.games.length ? completed / item.games.length * 100 : 0}%` }} /></div><p className="mt-3 text-xs text-[#667085]">{item.available_from ? `Opens ${new Date(item.available_from).toLocaleString("en-PH", { timeZone: "Asia/Manila" })} (Manila)` : "Available immediately"} · {item.available_until ? `Closes ${new Date(item.available_until).toLocaleString("en-PH", { timeZone: "Asia/Manila" })} (Manila)` : "No closing date"} · {item.max_attempts ?? "Unlimited"} attempts per game{item.time_limit_minutes ? ` · ${item.time_limit_minutes} minutes per attempt` : ""}</p><ol className="mt-5 divide-y divide-[#E3E8F2]">{item.games.map((game, index) => {
-      const history = item.attempts.filter(a => a.game_id === game.id), done = history.some(a => a.completion_status === "completed");
-      const unlocked = item.games.slice(0,index).every(g => item.attempts.some(a => a.game_id === g.id && a.completion_status === "completed"));
-      const resumable = item.allow_resume && history.some(a => a.status === "in_progress");
-      const limited = !resumable && item.max_attempts !== null && history.length >= item.max_attempts;
-      return <li key={game.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><p className="text-sm font-semibold text-[#344054]">{index + 1}. {game.name}</p><p className="mt-1 text-xs text-[#667085]">{done ? "Completed" : "Not completed"} · {history.length} attempts{history[0]?.score !== null && history[0]?.score !== undefined ? ` · Latest score: ${Math.round(history[0].score)}%` : ""}{history[0]?.success_status === "passed" ? " · Passed" : history[0]?.success_status === "failed" ? " · Failed" : ""}</p>{history.length > 0 && <details className="mt-2 text-xs text-[#667085]"><summary className="cursor-pointer">Attempt history</summary><ul className="mt-2 space-y-1">{history.map(a => <li key={a.id}>Attempt {a.attempt_number}: {a.completion_status || "In progress"}{a.score !== null ? ` · ${Math.round(a.score)}%` : ""} · {a.success_status || "Not assessed"}</li>)}</ul></details>}</div><LaunchLearningButton assignmentId={item.assignmentId} classAssignmentId={item.classAssignmentId} gameId={game.id} disabled={state !== "Available" || !unlocked || limited || game.status !== "published"} label={!unlocked ? "Complete earlier games" : limited ? "Attempt limit reached" : resumable ? "Resume" : done ? "Try Again" : "Start"} /></li>;
-    })}</ol></Card>;
-  })}</div> : <Empty title="No assigned learning yet">Your teacher’s assignments will appear here.</Empty>}</Workspace></div>;
+import { learningState, gameImage, learningDate } from "@/lib/lms/student-portal";
+import { Workspace, Card, Empty, secondaryClass } from "./LmsUi";
+import StudentLearningCard from "./StudentLearningCard";
+export default function StudentDashboard({ learning, tab = "Current" }: { name: string; learning: StudentLearning[]; tab?: string }) {
+  const tabs = ["Current", "Upcoming", "Completed", "Expired"], selected = tabs.includes(tab) ? tab : "Current";
+  const items = learning.filter(item => learningState(item) === selected);
+  return <Workspace title="My Learning" description="Your learning adventures, all in one place.">
+    <nav aria-label="Learning sections" className="mb-layout flex flex-wrap gap-2">{tabs.map(t => <Link key={t} href={`/student?tab=${t}`} aria-current={t === selected ? "page" : undefined} className={`${secondaryClass} ${t === selected ? "!border-[#6366F1] !bg-[#EEF0FF] !text-[#4F46E5]" : ""}`}>{t} ({learning.filter(l => learningState(l) === t).length})</Link>)}</nav>
+    {items.length ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{items.map(item => {
+      const nextGame = item.games.find(g => !item.attempts.some(a => a.game_id === g.id && a.completion_status === "completed"));
+      const image = gameImage((nextGame || item.games[0])?.image_path || null);
+      if (selected === "Current") return <StudentLearningCard key={item.key} title={item.title} image={image} assignmentId={item.assignmentId} classAssignmentId={item.classAssignmentId} gameId={nextGame?.id || null} />;
+      return <Card key={item.key}><div className="mb-4 aspect-[4/3] overflow-hidden rounded-xl bg-[#EEF0FF]">{image && <img src={image} alt="" className="h-full w-full object-cover" />}</div><h2 className="mb-4 text-lg font-bold text-[#172033]">{item.title}</h2>{selected === "Upcoming" ? <p className="text-sm text-[#667085]">Available {item.available_from ? learningDate(item.available_from) : "soon"} - Locked</p> : selected === "Expired" ? <p className="text-sm text-[#667085]">This assignment is closed. Your history is preserved.</p> : <Link href={`/student/scores?learning=${encodeURIComponent(item.key)}`} className={secondaryClass}>View Results</Link>}</Card>;
+    })}</div> : <Empty title={`No ${selected.toLowerCase()} learning`}>{selected === "Current" ? "Your teacher's assignments will appear here." : `Your ${selected.toLowerCase()} assignments will appear here.`}</Empty>}
+  </Workspace>;
 }

@@ -1,4 +1,8 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+import { addButtonClass } from "@/lib/ui/buttons";
+
 
 import {
   ChangeEvent,
@@ -258,7 +262,7 @@ export default function AddGameForm({
         (current) => ({
           ...current,
           image:
-            "Unable to preview the selected image. Please choose another image.",
+            "Unable to preview the selected image. Please choose a different image.",
         })
       );
     };
@@ -627,7 +631,7 @@ export default function AddGameForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="space-y-6"
+      className="stack-layout"
     >
       <div
         ref={imageSectionRef}
@@ -697,7 +701,7 @@ export default function AddGameForm({
                 : "border-[#DDE1FF] bg-[#F8F8FF]"
             }`}
           >
-            <div className="grid gap-4 p-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
+            <div className="grid gap-layout p-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
               {imagePreview ? (
                 <img
                   src={imagePreview}
@@ -730,8 +734,8 @@ export default function AddGameForm({
                     onClick={() =>
                       imageInputRef.current?.click()
                     }
-                    className="rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+                  ><ActionIcon name="next" />
                     Change image
                   </button>
 
@@ -743,8 +747,8 @@ export default function AddGameForm({
                     onClick={
                       removeImage
                     }
-                    className="rounded-lg border border-red-100 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-100 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  ><ActionIcon name="delete" />
                     Remove
                   </button>
                 </div>
@@ -760,7 +764,7 @@ export default function AddGameForm({
         )}
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div className="grid gap-layout md:grid-cols-2">
         <div
           ref={subjectSectionRef}
           className="scroll-mt-8"
@@ -809,7 +813,7 @@ export default function AddGameForm({
             }`}
           >
             <option value="">
-              Select subject
+              Select a subject
             </option>
 
             {subjects.map(
@@ -861,8 +865,8 @@ export default function AddGameForm({
           >
             <option value="">
               {subjectId
-                ? "General / No specific skill"
-                : "Select subject first"}
+                ? "General / No Specific Skill"
+                : "Select a subject first"}
             </option>
 
             {availableSkills.map(
@@ -1130,7 +1134,7 @@ export default function AddGameForm({
             </p>
 
             <p className="mt-1 text-xs leading-5 text-[#667085]">
-              LearnBoard stores the
+              LumenTrail stores the
               original package
               privately, checks its
               manifest and SCORM
@@ -1143,14 +1147,7 @@ export default function AddGameForm({
         </div>
       </div>
 
-      {serverError && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700"
-        >
-          {serverError}
-        </div>
-      )}
+      {serverError && <Notification type="error" message={serverError} onClose={() => setServerError("")} />}
 
       <div className="flex flex-col-reverse gap-3 border-t border-[#E8ECF4] pt-6 sm:flex-row sm:justify-end">
         <Link
@@ -1170,7 +1167,7 @@ export default function AddGameForm({
         <button
           type="submit"
           disabled={uploading}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#818CF8] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className={addButtonClass}
         >
           {uploading ? (
             <>
@@ -1281,24 +1278,7 @@ function ImageIcon() {
   );
 }
 
-function UploadIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path d="M12 16V4" />
-      <path d="m7 9 5-5 5 5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
+function UploadIcon() { return <ActionIcon name="upload" />; }
 
 function PackageIcon() {
   return (
@@ -1320,26 +1300,7 @@ function PackageIcon() {
   );
 }
 
-function TrashIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M3 6h18" />
-      <path d="M8 6V4h8v2" />
-      <path d="m19 6-1 14H6L5 6" />
-      <path d="M10 11v5" />
-      <path d="M14 11v5" />
-    </svg>
-  );
-}
+function TrashIcon() { return <ActionIcon name="delete" />; }
 
 function CheckIcon() {
   return (
@@ -1381,23 +1342,7 @@ function InfoIcon() {
   );
 }
 
-function PlusIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
+function PlusIcon() { return <ActionIcon name="add" />; }
 
 function SpinnerIcon() {
   return (

@@ -42,7 +42,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           error:
-            "Super Administrator access required.",
+            "Super Admin access is required.",
         },
         { status: 403 }
       );

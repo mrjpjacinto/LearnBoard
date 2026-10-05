@@ -20,6 +20,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { error } = await session.admin.rpc("learnboard_commit_runtime", { p_actor: session.profile.id, p_attempt: id, p_token: token, p_raw: metrics.raw, p_score: metrics.score, p_completion: metrics.completion, p_success: metrics.success, p_session_seconds: seconds, p_finish: body.finish });
     if (error?.code === "P0001") throw new LmsError(error.message, 409);
     checkDb(error);
-    return NextResponse.json({ saved: true, completion: metrics.completion, success: metrics.success, score: metrics.score });
+    return NextResponse.json({ saved: true, completion: metrics.completion, success: session.schedule.score_visible === false ? "unknown" : metrics.success, score: session.schedule.score_visible === false ? null : metrics.score });
   } catch(e) { return apiError(e); }
 }

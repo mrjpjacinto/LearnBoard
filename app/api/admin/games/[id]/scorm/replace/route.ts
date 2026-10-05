@@ -89,7 +89,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Only Super Admin can replace SCORM packages.",
+            "Only a Super Admin can replace SCORM packages.",
         },
         {
           status: 403,

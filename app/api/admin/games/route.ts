@@ -74,7 +74,7 @@ export async function POST(
     return NextResponse.json(
       {
         error:
-          "Only Super Admin can add games.",
+          "Only a Super Admin can add games.",
       },
       {
         status: 403,

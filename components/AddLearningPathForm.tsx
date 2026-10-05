@@ -1,4 +1,8 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+import { addButtonClass } from "@/lib/ui/buttons";
+
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -144,6 +148,7 @@ export default function AddLearningPathForm({
     setErrors({});
     setToast(null);
 
+    let created = false;
     try {
       const response = await fetch(
         "/api/admin/paths",
@@ -189,6 +194,8 @@ export default function AddLearningPathForm({
       const pathId =
         result?.path?.id;
 
+      created = true;
+
       setToast({
         type: "success",
         message:
@@ -199,12 +206,10 @@ export default function AddLearningPathForm({
         router.push(
           `/admin/paths/${pathId}`
         );
-        router.refresh();
         return;
       }
 
       router.push("/admin/paths");
-      router.refresh();
     } catch (error) {
       console.error(
         "Create Learning Path error:",
@@ -223,7 +228,7 @@ export default function AddLearningPathForm({
         message,
       });
     } finally {
-      setIsSubmitting(false);
+      if (!created) setIsSubmitting(false);
     }
   }
 
@@ -257,7 +262,7 @@ export default function AddLearningPathForm({
           </p>
         </div>
 
-        <div className="space-y-6 px-6 py-6 sm:px-7">
+        <div className="stack-layout px-6 py-6 sm:px-7">
           {errors.general && (
             <div
               role="alert"
@@ -474,20 +479,17 @@ export default function AddLearningPathForm({
             </span>
 
             <p className="mt-1 text-xs leading-5 text-[#98A2B3]">
-              Active paths are
-              available for assignment.
-              Archived paths remain
-              saved but should no
-              longer be assigned.
+              Active paths are available for learning.
+              Archived paths remain saved but inactive.
             </p>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-layout sm:grid-cols-2">
               <StatusOption
                 selected={
                   status === "active"
                 }
                 title="Active"
-                description="Ready to build and assign."
+                description="Ready to build and use."
                 icon={
                   <CheckCircleIcon />
                 }
@@ -531,7 +533,7 @@ export default function AddLearningPathForm({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#818CF8] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className={addButtonClass}
           >
             {isSubmitting ? (
               <>
@@ -617,67 +619,10 @@ function Toast({
   message: string;
   onClose: () => void;
 }) {
-  const success =
-    type === "success";
-
-  return (
-    <div className="fixed right-5 top-5 z-[100] w-[calc(100%-2.5rem)] max-w-sm">
-      <div
-        role="status"
-        className={`flex items-start gap-3 rounded-xl border bg-white px-4 py-3.5 shadow-lg ${
-          success
-            ? "border-emerald-200"
-            : "border-red-200"
-        }`}
-      >
-        <div
-          className={`mt-0.5 shrink-0 ${
-            success
-              ? "text-emerald-600"
-              : "text-red-600"
-          }`}
-        >
-          {success ? (
-            <CheckCircleIcon />
-          ) : (
-            <ErrorIcon />
-          )}
-        </div>
-
-        <p className="min-w-0 flex-1 text-sm font-medium leading-5 text-[#344054]">
-          {message}
-        </p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close notification"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#98A2B3] transition hover:bg-[#F2F4F7] hover:text-[#475467]"
-        >
-          <CloseIcon />
-        </button>
-      </div>
-    </div>
-  );
+  return <Notification type={type} message={message} onClose={onClose} />;
 }
 
-function PlusIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
+function PlusIcon() { return <ActionIcon name="add" />; }
 
 function CheckCircleIcon() {
   return (
@@ -767,23 +712,7 @@ function ErrorIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
+function CloseIcon() { return <ActionIcon name="close" />; }
 
 function MiniCheckIcon() {
   return (

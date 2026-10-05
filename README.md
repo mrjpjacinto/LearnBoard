@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+The existing **LearnBoard Database** is documented in [database/README.md](database/README.md). Database proposals require review and approval before execution.
+
 ## Getting Started
 
 First, run the development server:

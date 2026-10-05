@@ -182,24 +182,21 @@ export default async function AdminPage() {
 
         {/* Header */}
         <div>
-          <p className="text-sm font-semibold tracking-wide text-[#6366F1]">
-            DASHBOARD
-          </p>
 
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#172033]">
+          <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
             Welcome back, {firstName}
           </h1>
 
           <p className="mt-2 text-slate-500">
             {isSuperAdmin
-              ? "Here’s an overview of LearnBoard across all schools."
-              : "Here’s an overview of your school on LearnBoard."}
+              ? "Here’s an overview of LumenTrail across all schools."
+              : "Here’s an overview of your school on LumenTrail."}
           </p>
         </div>
 
         {/* Main statistics */}
         <div
-          className={`mt-8 grid gap-4 ${
+          className={`mt-layout grid gap-layout ${
             isSuperAdmin
               ? "sm:grid-cols-2 xl:grid-cols-4"
               : "sm:grid-cols-2 xl:grid-cols-3"
@@ -209,7 +206,7 @@ export default async function AdminPage() {
             <StatCard
               title="Schools"
               value={schools}
-              description="Schools on LearnBoard"
+              description="Schools on LumenTrail"
               icon={<SchoolIcon />}
               href="/admin/schools"
             />
@@ -241,7 +238,7 @@ export default async function AdminPage() {
         </div>
 
         {/* Content */}
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="mt-layout grid gap-layout xl:grid-cols-[1.35fr_0.65fr]">
 
           {/* Quick Actions */}
           <section className="rounded-2xl border border-[#E3E8F2] bg-white p-6 shadow-sm">
@@ -256,7 +253,7 @@ export default async function AdminPage() {
               </p>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="mt-layout grid gap-layout sm:grid-cols-2">
 
               {isSuperAdmin && (
                 <QuickAction
@@ -306,10 +303,10 @@ export default async function AdminPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Current LearnBoard activity.
+              Current LumenTrail activity.
             </p>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-layout stack-layout">
 
               <SummaryRow
                 label="Students"
@@ -342,7 +339,7 @@ export default async function AdminPage() {
 
             <Link
               href="/admin/reports"
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4F46E5]"
+              className="mt-layout flex w-full items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#4F46E5]"
             >
               Open Reports
 

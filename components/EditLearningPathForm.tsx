@@ -1,4 +1,7 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import Link from "next/link";
 import {
@@ -158,6 +161,7 @@ export default function EditLearningPathForm({
     setErrors({});
     setToast(null);
 
+    let saved = false;
     try {
       const response =
         await fetch(
@@ -206,13 +210,8 @@ export default function EditLearningPathForm({
           "Learning Path updated successfully.",
       });
 
-      router.refresh();
-
-      window.setTimeout(() => {
-        router.push(
-          `/admin/paths/${path.id}`
-        );
-      }, 500);
+      saved = true;
+      router.push(`/admin/paths/${path.id}`);
     } catch (error) {
       console.error(
         "Update Learning Path error:",
@@ -231,7 +230,7 @@ export default function EditLearningPathForm({
         message,
       });
     } finally {
-      setIsSubmitting(false);
+      if (!saved) setIsSubmitting(false);
     }
   }
 
@@ -263,7 +262,7 @@ export default function EditLearningPathForm({
           </p>
         </div>
 
-        <div className="space-y-6 px-6 py-6 sm:px-7">
+        <div className="stack-layout px-6 py-6 sm:px-7">
           {errors.general && (
             <div
               role="alert"
@@ -429,7 +428,7 @@ export default function EditLearningPathForm({
               no longer be assigned.
             </p>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-layout sm:grid-cols-2">
               <StatusOption
                 selected={
                   status ===
@@ -576,48 +575,7 @@ function Toast({
   message: string;
   onClose: () => void;
 }) {
-  const success =
-    type === "success";
-
-  return (
-    <div className="fixed right-5 top-5 z-[100] w-[calc(100%-2.5rem)] max-w-sm">
-      <div
-        role="status"
-        className={`flex items-start gap-3 rounded-xl border bg-white px-4 py-3.5 shadow-lg ${
-          success
-            ? "border-emerald-200"
-            : "border-red-200"
-        }`}
-      >
-        <div
-          className={`mt-0.5 shrink-0 ${
-            success
-              ? "text-emerald-600"
-              : "text-red-600"
-          }`}
-        >
-          {success ? (
-            <CheckCircleIcon />
-          ) : (
-            <ErrorIcon />
-          )}
-        </div>
-
-        <p className="min-w-0 flex-1 text-sm font-medium leading-5 text-[#344054]">
-          {message}
-        </p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close notification"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[#98A2B3] transition hover:bg-[#F2F4F7] hover:text-[#475467]"
-        >
-          <CloseIcon />
-        </button>
-      </div>
-    </div>
-  );
+  return <Notification type={type} message={message} onClose={onClose} />;
 }
 
 function SchoolIcon() {
@@ -685,24 +643,7 @@ function ArchiveIcon() {
   );
 }
 
-function SaveIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
-      <path d="M17 21v-8H7v8" />
-      <path d="M7 3v5h8" />
-    </svg>
-  );
-}
+function SaveIcon() { return <ActionIcon name="save" />; }
 
 function ErrorIcon() {
   return (
@@ -727,23 +668,7 @@ function ErrorIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
+function CloseIcon() { return <ActionIcon name="close" />; }
 
 function MiniCheckIcon() {
   return (

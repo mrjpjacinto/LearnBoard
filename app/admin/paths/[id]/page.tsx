@@ -1,6 +1,12 @@
+import PathGameTiles from "@/components/PathGameTiles";
+import PathStudents from "@/components/PathStudents";
+
+import ActionIcon from "@/components/ActionIcon";
 import Link from "next/link";
+import PrimaryAddLink from "@/components/PrimaryAddLink";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type PageProps = {
   params: Promise<{
@@ -92,14 +98,15 @@ export default async function ManageLearningPathPage({
     profile.role ===
     "super_admin";
 
-  /*
-   * RLS provides the first layer of
-   * school protection.
-   */
+  // Match the authorized server read used by the library and creation API.
+  // School ownership is checked before loading related path content.
+  const admin = createAdminClient();
+
+  // Fetch server-side, then enforce the authenticated role and school below.
   const {
     data: pathData,
     error: pathError,
-  } = await supabase
+  } = await admin
     .from("learning_boards")
     .select(
       `
@@ -121,7 +128,7 @@ export default async function ManageLearningPathPage({
       pathError
     );
 
-    notFound();
+    throw new Error("Unable to load the saved Learning Path. Please reload the page.");
   }
 
   if (!pathData) {
@@ -154,7 +161,7 @@ export default async function ManageLearningPathPage({
     const {
       data: schoolData,
       error: schoolError,
-    } = await supabase
+    } = await admin
       .from("schools")
       .select("id, name")
       .eq(
@@ -180,7 +187,7 @@ export default async function ManageLearningPathPage({
   const {
     data: pathGameData,
     error: pathGamesError,
-  } = await supabase
+  } = await admin
     .from("learning_board_games")
     .select(
       `
@@ -220,7 +227,7 @@ export default async function ManageLearningPathPage({
     const {
       data,
       error,
-    } = await supabase
+    } = await admin
       .from("games")
       .select(
         `
@@ -272,7 +279,7 @@ export default async function ManageLearningPathPage({
     const {
       data,
       error,
-    } = await supabase
+    } = await admin
       .from("subjects")
       .select("id, name")
       .in("id", subjectIds);
@@ -353,7 +360,7 @@ export default async function ManageLearningPathPage({
           </span>
         </div>
 
-        <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="mt-layout flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
@@ -414,7 +421,7 @@ export default async function ManageLearningPathPage({
           </Link>
         </div>
 
-        <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="mt-layout grid gap-layout xl:grid-cols-[minmax(0,1fr)_320px]">
           <section className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
             <div className="flex flex-col gap-4 border-b border-[#E8ECF4] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -429,13 +436,7 @@ export default async function ManageLearningPathPage({
                 </p>
               </div>
 
-              <Link
-                href={`/admin/paths/${path.id}/games`}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 text-sm font-semibold text-white transition hover:bg-[#4F46E5]"
-              >
-                <PlusIcon />
-                Add &amp; Arrange Games
-              </Link>
+              <PrimaryAddLink href={`/admin/paths/${path.id}/games`}>Add Games</PrimaryAddLink>
             </div>
 
             {pathGamesError ? (
@@ -467,128 +468,22 @@ export default async function ManageLearningPathPage({
 
                 <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#667085]">
                   Add games from the
-                  LearnBoard library
+                  LumenTrail library
                   and arrange them in
                   the order students
                   should complete
                   them.
                 </p>
 
-                <Link
-                  href={`/admin/paths/${path.id}/games`}
-                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-4 text-sm font-semibold text-white transition hover:bg-[#4F46E5]"
-                >
-                  <PlusIcon />
-                  Add Games
-                </Link>
+
               </div>
             ) : (
-              <div className="divide-y divide-[#EEF1F6]">
-                {orderedGames.map(
-                  (
-                    item,
-                    index
-                  ) => {
-                    const subjectName =
-                      item.game
-                        .subject_id
-                        ? subjectMap.get(
-                            item.game
-                              .subject_id
-                          )
-                        : null;
-
-                    const imageUrl =
-                      getGameImageUrl(
-                        item.game
-                          .image_path
-                      );
-
-                    return (
-                      <div
-                        key={
-                          item.relationId
-                        }
-                        className="flex items-center gap-4 px-5 py-4 sm:px-6"
-                      >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EEF0FF] text-sm font-bold text-[#6366F1]">
-                          {index + 1}
-                        </div>
-
-                        <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl border border-[#E3E8F2] bg-[#F4F6FA]">
-                          {imageUrl ? (
-                            <img
-                              src={
-                                imageUrl
-                              }
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[#98A2B3]">
-                              <GameIcon />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-[#172033]">
-                            {
-                              item.game
-                                .name
-                            }
-                          </p>
-
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#667085]">
-                            {subjectName && (
-                              <span>
-                                {
-                                  subjectName
-                                }
-                              </span>
-                            )}
-
-                            <span className="capitalize">
-                              {item.game
-                                .orientation_mode ||
-                                "landscape"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <span className="hidden text-xs font-semibold text-[#98A2B3] sm:inline">
-                          Step{" "}
-                          {index + 1}
-                        </span>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
+              <PathGameTiles key={path.updated_at} pathId={path.id} updatedAt={path.updated_at} games={orderedGames.map(item => ({ id: item.game.id, name: item.game.name, imageUrl: getGameImageUrl(item.game.image_path), subject: item.game.subject_id ? subjectMap.get(item.game.subject_id) || null : null, orientation: item.game.orientation_mode || "landscape" }))} />
             )}
           </section>
 
-          <aside className="space-y-5">
-            <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
-              <h2 className="text-base font-bold text-[#172033]">
-                Assignments
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-[#667085]">
-                Assign this Learning
-                Path to classes or
-                individual students.
-              </p>
-
-              <Link
-                href={`/admin/paths/${path.id}/assign`}
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#C7CCF8] bg-[#F5F5FF] px-4 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#ECEEFF]"
-              >
-                <UsersIcon />
-                Manage Assignments
-              </Link>
-            </div>
-
+          <aside className="stack-layout">
+            {path.school_id && <PathStudents pathId={path.id} active={path.status === "active"} />}
             <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
               <h2 className="text-base font-bold text-[#172033]">
                 Path Information
@@ -745,58 +640,9 @@ function formatDate(
   ).format(date);
 }
 
-function ChevronRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4 text-[#98A2B3]"
-      aria-hidden="true"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
+function ChevronRightIcon() { return <ActionIcon name="next" />; }
 
-function PlusIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
-
-function EditIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-    </svg>
-  );
-}
+function EditIcon() { return <ActionIcon name="edit" />; }
 
 function GameIcon() {
   return (
@@ -864,30 +710,6 @@ function CalendarIcon() {
       <path d="M16 3v4" />
       <path d="M8 3v4" />
       <path d="M3 10h18" />
-    </svg>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle
-        cx="9"
-        cy="7"
-        r="4"
-      />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   );
 }

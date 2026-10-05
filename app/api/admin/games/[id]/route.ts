@@ -49,14 +49,7 @@ export async function PATCH(
       );
     }
 
-    /*
-     * Both Super Admin and active
-     * School Admin may edit the
-     * permitted game information.
-     *
-     * SCORM fields are intentionally
-     * not accepted by this endpoint.
-     */
+    // Global game information is managed only by Super Admin.
     const {
       data: profile,
       error: profileError,
@@ -72,10 +65,7 @@ export async function PATCH(
       profileError ||
       !profile ||
       !profile.is_active ||
-      ![
-        "super_admin",
-        "admin",
-      ].includes(profile.role)
+      profile.role !== "super_admin"
     ) {
       return NextResponse.json(
         {
@@ -199,7 +189,7 @@ export async function PATCH(
       );
     }
 
-    if (name.length > 150 || description.length > 1000) return NextResponse.json({ error: "Game title or description is too long." }, { status: 400 });
+    if (name.length > 150 || description.length > 1000) return NextResponse.json({ error: "The game title or description is too long." }, { status: 400 });
 
     if (!subjectId) {
       return NextResponse.json(

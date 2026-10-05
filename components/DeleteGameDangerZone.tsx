@@ -1,4 +1,7 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import {
   useEffect,
@@ -131,35 +134,7 @@ export default function DeleteGameDangerZone({
 
   return (
     <>
-      {error && (
-        <div
-          className="pointer-events-none fixed right-6 top-6 z-[100] w-[calc(100%-2rem)] max-w-md"
-          aria-live="assertive"
-        >
-          <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 shadow-lg shadow-slate-900/10">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <ErrorIcon />
-            </div>
-
-            <div className="min-w-0 flex-1 pt-1">
-              <p className="text-sm font-semibold text-red-800">
-                {error}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setError("")
-              }
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-100"
-              aria-label="Close notification"
-            >
-              <CloseIcon />
-            </button>
-          </div>
-        </div>
-      )}
+      {error && <Notification type="error" message={error} onClose={() => setError("")} />}
 
       {compact ? (
         deleteButton
@@ -179,7 +154,7 @@ export default function DeleteGameDangerZone({
                 <p className="mt-1 text-sm leading-5 text-[#667085]">
                   Permanently remove this
                   game and its associated
-                  files from LearnBoard.
+                  files from LumenTrail.
                 </p>
               </div>
 
@@ -245,7 +220,7 @@ export default function DeleteGameDangerZone({
                 </button>
               </div>
 
-              <div className="mt-5 flex items-start gap-3 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] px-4 py-3.5">
+              <div className="mt-layout flex items-start gap-3 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] px-4 py-3.5">
                 <div className="mt-0.5 text-amber-500">
                   <WarningIcon />
                 </div>
@@ -272,7 +247,7 @@ export default function DeleteGameDangerZone({
                   )
                 }
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#CBD5E1] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
+              ><ActionIcon name="close" />
                 Cancel
               </button>
 
@@ -304,26 +279,7 @@ export default function DeleteGameDangerZone({
   );
 }
 
-function TrashIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M3 6h18" />
-      <path d="M8 6V4h8v2" />
-      <path d="M19 6l-1 14H6L5 6" />
-      <path d="M10 11v5" />
-      <path d="M14 11v5" />
-    </svg>
-  );
-}
+function TrashIcon() { return <ActionIcon name="delete" />; }
 
 function TrashIconLarge() {
   return (
@@ -388,23 +344,7 @@ function ErrorIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M6 6l12 12" />
-      <path d="M18 6 6 18" />
-    </svg>
-  );
-}
+function CloseIcon() { return <ActionIcon name="close" />; }
 
 function Spinner() {
   return (

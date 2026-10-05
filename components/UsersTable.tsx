@@ -1,4 +1,7 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -679,7 +682,7 @@ export default function UsersTable({
 
   return (
     <>
-      <div className="mt-8 overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white text-slate-900 shadow-sm">
+      <div className="mt-layout overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white text-slate-900 shadow-sm">
 
         {/* Filters */}
         <div className="border-b border-[#E3E8F2] p-6">
@@ -704,7 +707,7 @@ export default function UsersTable({
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:flex">
+            <div className="grid gap-layout sm:grid-cols-2 xl:flex">
 
               <input
                 type="search"
@@ -812,7 +815,7 @@ export default function UsersTable({
                 className="rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm outline-none"
               >
                 <option value="all">
-                  All Statuses
+                  Any Status
                 </option>
 
                 <option value="active">
@@ -900,7 +903,7 @@ export default function UsersTable({
 
                           {isCurrentUser && (
                             <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-semibold text-[#4F46E5]">
-                              Me
+                              (you)
                             </span>
                           )}
 
@@ -987,8 +990,8 @@ export default function UsersTable({
                               user
                             )
                           }
-                          className="rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
-                        >
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+                        ><ActionIcon name="next" />
                           Manage
                         </button>
 
@@ -1038,7 +1041,7 @@ export default function UsersTable({
                   {selectedUser.id ===
                     currentUserId && (
                     <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-xs font-semibold text-[#4F46E5]">
-                      Me
+                      (you)
                     </span>
                   )}
 
@@ -1052,6 +1055,7 @@ export default function UsersTable({
 
               <button
                 type="button"
+                aria-label="Close user details"
                 onClick={
                   closeManage
                 }
@@ -1059,14 +1063,13 @@ export default function UsersTable({
                   saving ||
                   passwordSaving
                 }
-                className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-              >
-                ✕
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+              ><ActionIcon name="close" />
               </button>
 
             </div>
 
-            <div className="space-y-5 p-6">
+            <div className="stack-layout p-6">
 
               {/* Full Name */}
               <div>
@@ -1142,7 +1145,7 @@ export default function UsersTable({
                     >
 
                       <option value="">
-                        Select school
+                        Select a school
                       </option>
 
                       {schools.map(
@@ -1440,8 +1443,8 @@ export default function UsersTable({
                             false
                           );
                         }}
-                        className="shrink-0 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] hover:bg-[#F5F6FF]"
-                      >
+                        className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] hover:bg-[#F5F6FF]"
+                      ><ActionIcon name="key" />
                         Set New Password
                       </button>
 
@@ -1533,8 +1536,8 @@ export default function UsersTable({
                           disabled={
                             passwordSaving
                           }
-                          className="rounded-lg border border-[#D8DEEA] bg-white px-4 py-2 text-xs font-semibold text-[#475467] disabled:opacity-50"
-                        >
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-4 py-2 text-xs font-semibold text-[#475467] disabled:opacity-50"
+                        ><ActionIcon name="close" />
                           Cancel
                         </button>
 
@@ -1546,8 +1549,8 @@ export default function UsersTable({
                           disabled={
                             passwordSaving
                           }
-                          className="rounded-lg bg-[#6366F1] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#4F46E5] disabled:opacity-50"
-                        >
+                          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#6366F1] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#4F46E5] disabled:opacity-50"
+                        ><ActionIcon name="key" />
                           {passwordSaving
                             ? "Updating..."
                             : "Update Password"}
@@ -1578,13 +1581,7 @@ export default function UsersTable({
               )}
 
               {/* Error */}
-              {editError && (
-
-                <div className="rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700">
-                  {editError}
-                </div>
-
-              )}
+              {editError && <Notification type="error" message={editError} onClose={() => setEditError("")} />}
 
               {/* Actions */}
               <div className="flex justify-end gap-3 border-t border-[#E3E8F2] pt-5">
@@ -1598,8 +1595,8 @@ export default function UsersTable({
                     saving ||
                     passwordSaving
                   }
-                  className="rounded-xl border border-[#D8DEEA] px-5 py-3 text-sm font-semibold text-[#475467] disabled:opacity-50"
-                >
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] px-5 py-3 text-sm font-semibold text-[#475467] disabled:opacity-50"
+                ><ActionIcon name="close" />
                   Cancel
                 </button>
 
@@ -1612,8 +1609,8 @@ export default function UsersTable({
                     saving ||
                     passwordSaving
                   }
-                  className="rounded-xl bg-[#6366F1] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:opacity-50"
-                >
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:opacity-50"
+                ><ActionIcon name="save" />
                   {saving
                     ? "Saving..."
                     : selectedUser.role ===

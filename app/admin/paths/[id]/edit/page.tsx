@@ -1,6 +1,8 @@
+
+import ActionIcon from "@/components/ActionIcon";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { notFound } from "next/navigation";
+import { pageAuth, checkDb } from "@/lib/lms/auth";
 import EditLearningPathForm from "@/components/EditLearningPathForm";
 
 type PageProps = {
@@ -27,85 +29,14 @@ export default async function EditLearningPathPage({
 }: PageProps) {
   const { id } = await params;
 
-  const supabase =
-    await createClient();
-
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (
-    authError ||
-    !user
-  ) {
-    redirect("/");
-  }
-
-  const {
-    data: profile,
-    error: profileError,
-  } = await supabase
-    .from("profiles")
-    .select(
-      "role, is_active, school_id"
-    )
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (
-    profileError ||
-    !profile ||
-    !profile.is_active ||
-    ![
-      "super_admin",
-      "admin",
-    ].includes(profile.role)
-  ) {
-    redirect("/");
-  }
-
-  const isSuperAdmin =
-    profile.role ===
-    "super_admin";
-
-  const {
-    data: pathData,
-    error: pathError,
-  } = await supabase
-    .from("learning_boards")
-    .select(
-      `
-        id,
-        name,
-        description,
-        status,
-        school_id
-      `
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  if (
-    pathError ||
-    !pathData
-  ) {
-    notFound();
-  }
-
-  const path =
-    pathData as LearningPath;
-
-  if (
-    !isSuperAdmin &&
-    (
-      !profile.school_id ||
-      path.school_id !==
-        profile.school_id
-    )
-  ) {
-    notFound();
-  }
+  const { admin, profile } = await pageAuth();
+  let query = admin.from("learning_boards")
+    .select("id,name,description,status,school_id").eq("id", id);
+  if (profile.role !== "super_admin") query = query.eq("school_id", profile.school_id!);
+  const { data: pathData, error: pathError } = await query.maybeSingle();
+  checkDb(pathError);
+  if (!pathData) notFound();
+  const path = pathData as LearningPath;
 
   let school: School | null =
     null;
@@ -114,7 +45,7 @@ export default async function EditLearningPathPage({
     const {
       data: schoolData,
       error: schoolError,
-    } = await supabase
+    } = await admin
       .from("schools")
       .select("id, name")
       .eq(
@@ -173,7 +104,7 @@ export default async function EditLearningPathPage({
           </p>
         </div>
 
-        <div className="mt-7">
+        <div className="mt-layout">
           <EditLearningPathForm
             path={{
               id: path.id,
@@ -192,19 +123,4 @@ export default async function EditLearningPathPage({
   );
 }
 
-function ChevronRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4 text-[#98A2B3]"
-      aria-hidden="true"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
+function ChevronRightIcon() { return <ActionIcon name="next" />; }

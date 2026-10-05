@@ -93,7 +93,7 @@ export default async function AddGamePage() {
   return (
     <main className="min-h-screen bg-[#F4F7FB] p-6 lg:p-8">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-7">
+        <div className="mb-layout">
           <Link
             href="/admin/games"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#6366F1]"
@@ -114,12 +114,9 @@ export default async function AddGamePage() {
             Back to Games
           </Link>
 
-          <div className="mt-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6366F1]">
-              Content Management
-            </p>
+          <div className="mt-layout">
 
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#172033]">
+            <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
               Add Game
             </h1>
 
@@ -128,12 +125,12 @@ export default async function AddGamePage() {
               choose its subject and
               skill, then upload the
               SCORM ZIP package to
-              LearnBoard.
+              LumenTrail.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-layout lg:grid-cols-[minmax(0,1fr)_300px]">
           <section className="rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
             <div className="border-b border-[#E8ECF4] px-6 py-5">
               <h2 className="text-lg font-bold text-[#172033]">
@@ -156,7 +153,7 @@ export default async function AddGamePage() {
             </div>
           </section>
 
-          <aside className="space-y-5">
+          <aside className="stack-layout">
             <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EEF0FF] text-[#6366F1]">
                 <PackageIcon />
@@ -169,7 +166,7 @@ export default async function AddGamePage() {
               <p className="mt-2 text-sm leading-6 text-[#667085]">
                 Upload the complete
                 game as a ZIP file.
-                LearnBoard will
+                LumenTrail will
                 validate the package
                 before it can be used.
               </p>
@@ -209,7 +206,7 @@ export default async function AddGamePage() {
               </p>
 
               <p className="mt-2 text-sm leading-6 text-[#667085]">
-                LearnBoard will also
+                LumenTrail will also
                 support detailed game
                 scoring and student
                 attempt tracking.

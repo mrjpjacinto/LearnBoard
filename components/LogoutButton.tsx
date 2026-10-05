@@ -1,14 +1,20 @@
 "use client";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type LogoutButtonProps = {
   iconOnly?: boolean;
+  light?: boolean;
+  menu?: boolean;
 };
 
 export default function LogoutButton({
   iconOnly = false,
+  light = false,
+  menu = false,
 }: LogoutButtonProps) {
   const router = useRouter();
 
@@ -26,8 +32,8 @@ export default function LogoutButton({
       <button
         type="button"
         onClick={handleLogout}
-        title="Logout"
-        aria-label="Logout"
+        title="Log Out"
+        aria-label="Log Out"
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#8FA6CC] transition hover:bg-[#263248] hover:text-white"
       >
         <svg
@@ -52,9 +58,9 @@ export default function LogoutButton({
     <button
       type="button"
       onClick={handleLogout}
-      className="rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
-    >
-      Logout
+      className={menu ? "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-[#475467] transition hover:bg-[#F4F7FB] hover:text-[#172033]" : `inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition ${light ? "border border-[#D8DEEA] bg-white text-[#344054] hover:bg-[#EEF0FF]" : "bg-white/10 text-white hover:bg-white/20"}`}
+    ><ActionIcon name="logout" />
+      Log Out
     </button>
   );
 }

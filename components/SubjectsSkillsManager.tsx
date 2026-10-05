@@ -1,4 +1,7 @@
 "use client";
+import ActionIcon from "@/components/ActionIcon";
+import { addButtonClass } from "@/lib/ui/buttons";
+
 
 import {
   FormEvent,
@@ -127,7 +130,7 @@ export default function SubjectsSkillsManager({
   return (
     <>
       <section>
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-layout flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-md">
             <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
 
@@ -181,7 +184,7 @@ export default function SubjectsSkillsManager({
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="grid gap-layout xl:grid-cols-2">
             {filteredSubjects.map(
               (subject) => (
                 <SubjectCard
@@ -396,8 +399,8 @@ function SubjectCard({
           <button
             type="button"
             onClick={onManage}
-            className="shrink-0 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#C8D0DF] hover:bg-[#F8FAFC]"
-          >
+            className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#C8D0DF] hover:bg-[#F8FAFC]"
+          ><ActionIcon name="next" />
             Manage
           </button>
         </div>
@@ -422,7 +425,7 @@ function SubjectCard({
             disabled={
               !subject.is_active
             }
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#D8DEEA] bg-white px-3 text-xs font-semibold text-[#4F46E5] transition hover:border-[#C7CCFF] hover:bg-[#F8F8FF] disabled:cursor-not-allowed disabled:opacity-50"
+            className={addButtonClass}
           >
             <PlusIcon />
             Add Skill
@@ -600,7 +603,7 @@ function AddSubjectModal({
     >
       <form
         onSubmit={handleSubmit}
-        className="space-y-5"
+        className="stack-layout"
       >
         <TextField
           label="Subject Name"
@@ -735,7 +738,7 @@ function AddSkillModal({
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-5"
+        className="stack-layout"
       >
         <TextField
           label="Skill Name"
@@ -892,9 +895,9 @@ function ManageSubjectModal({
     >
       <form
         onSubmit={handleSubmit}
-        className="space-y-5"
+        className="stack-layout"
       >
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-layout md:grid-cols-2">
           <TextField
             label="Subject Name"
             value={name}
@@ -952,7 +955,7 @@ function ManageSubjectModal({
                 saving ||
                 !isActive
               }
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#D8DEEA] bg-white px-3 text-xs font-semibold text-[#4F46E5] transition hover:bg-[#F8F8FF] disabled:cursor-not-allowed disabled:opacity-50"
+              className={addButtonClass}
             >
               <PlusIcon />
               Add Skill
@@ -1158,7 +1161,7 @@ function ManageSkillModal({
 
       <form
         onSubmit={handleSubmit}
-        className="space-y-5"
+        className="stack-layout"
       >
         <TextField
           label="Skill Name"
@@ -1223,7 +1226,7 @@ function SubjectContext({
   subject: SubjectRow;
 }) {
   return (
-    <div className="mb-5 rounded-xl border border-[#E3E8F2] bg-[#F8FAFC] px-4 py-3">
+    <div className="mb-layout rounded-xl border border-[#E3E8F2] bg-[#F8FAFC] px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#98A2B3]">
         Subject
       </p>
@@ -1342,7 +1345,7 @@ function StatusControl({
         }
         disabled={disabled}
         className="flex h-12 w-full items-center justify-between rounded-xl border border-[#D8DEEA] bg-white px-4 text-left transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      ><ActionIcon name="check" />
         <div>
           <p className="text-sm font-semibold text-[#344054]">
             {active
@@ -1459,15 +1462,15 @@ function ModalActions({
         type="button"
         onClick={onCancel}
         disabled={saving}
-        className="h-11 rounded-xl border border-[#D8DEEA] bg-white px-5 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-      >
+        className="inline-flex items-center justify-center gap-2 h-11 rounded-xl border border-[#D8DEEA] bg-white px-5 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+      ><ActionIcon name="close" />
         Cancel
       </button>
 
       <button
         type="submit"
         disabled={saving}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-60"
+        className={addButtonClass}
       >
         {saving ? (
           <>
@@ -1476,9 +1479,7 @@ function ModalActions({
           </>
         ) : (
           <>
-            {showPlus && (
-              <PlusIcon />
-            )}
+            <ActionIcon name={showPlus ? "add" : "save"} />
             {submitLabel}
           </>
         )}
@@ -1562,7 +1563,7 @@ function EmptyState({
         <BookIcon />
       </div>
 
-      <h2 className="mt-5 text-lg font-bold text-[#172033]">
+      <h2 className="mt-layout text-lg font-bold text-[#172033]">
         Create your first
         subject
       </h2>
@@ -1574,7 +1575,7 @@ function EmptyState({
         organize its games.
       </p>
 
-      <div className="mt-6 flex justify-center">
+      <div className="mt-layout flex justify-center">
         <PrimaryAddButton
           onClick={
             onAddSubject
@@ -1614,23 +1615,7 @@ function BookIcon() {
   );
 }
 
-function PlusIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
+function PlusIcon() { return <ActionIcon name="add" />; }
 
 function SearchIcon({
   className = "h-5 w-5",
@@ -1658,40 +1643,9 @@ function SearchIcon({
   );
 }
 
-function ChevronRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4 shrink-0 text-[#98A2B3]"
-      aria-hidden="true"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
+function ChevronRightIcon() { return <ActionIcon name="next" />; }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </svg>
-  );
-}
+function CloseIcon() { return <ActionIcon name="close" />; }
 
 function Spinner() {
   return (

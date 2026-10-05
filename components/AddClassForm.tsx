@@ -1,4 +1,8 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+import { addButtonClass } from "@/lib/ui/buttons";
+
 
 import {
   FormEvent,
@@ -167,7 +171,7 @@ export default function AddClassForm({
               onSubmit={
                 handleSubmit
               }
-              className="space-y-5 p-6"
+              className="stack-layout p-6"
             >
 
               {isSuperAdmin && (
@@ -262,11 +266,7 @@ export default function AddClassForm({
 
               </div>
 
-              {error && (
-                <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  {error}
-                </div>
-              )}
+              {error && <Notification type="error" message={error} onClose={() => setError("")} />}
 
               <div className="flex justify-end gap-3 border-t border-[#E3E8F2] pt-5">
 
@@ -276,8 +276,8 @@ export default function AddClassForm({
                     setOpen(false)
                   }
                   disabled={loading}
-                  className="rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-                >
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                ><ActionIcon name="close" />
                   Cancel
                 </button>
 
@@ -288,7 +288,7 @@ export default function AddClassForm({
                     (isSuperAdmin &&
                       !schoolId)
                   }
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50"
+                  className={addButtonClass}
                 >
                   {!loading && (
                     <PlusIcon />
@@ -310,20 +310,4 @@ export default function AddClassForm({
   );
 }
 
-function PlusIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
-    </svg>
-  );
-}
+function PlusIcon() { return <ActionIcon name="add" />; }

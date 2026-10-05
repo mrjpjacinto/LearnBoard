@@ -66,7 +66,7 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            "Only Super Admin can download SCORM packages.",
+            "Only a Super Admin can download SCORM packages.",
         },
         {
           status: 403,

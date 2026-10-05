@@ -237,7 +237,7 @@ export async function POST(request: Request) {
 
     /*
      * The auth trigger creates the profile.
-     * Update that profile with LearnBoard's
+     * Update that profile with LumenTrail's
      * role and school information.
      */
     const { error: profileError } =
@@ -273,7 +273,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "The authentication account was created, but the LearnBoard profile could not be created.",
+            "The authentication account was created, but the LumenTrail profile could not be created.",
         },
         { status: 500 }
       );

@@ -1,4 +1,7 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -285,7 +288,7 @@ export default function SchoolsTable({
                 className="rounded-xl border border-[#D8DEEA] bg-white px-4 py-2.5 text-sm text-[#475467] outline-none transition focus:border-[#818CF8]"
               >
                 <option value="all">
-                  All Statuses
+                  Any Status
                 </option>
 
                 <option value="active">
@@ -437,8 +440,8 @@ export default function SchoolsTable({
                             school
                           )
                         }
-                        className="rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
-                      >
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+                      ><ActionIcon name="next" />
                         Manage
                       </button>
 
@@ -544,7 +547,7 @@ export default function SchoolsTable({
             </div>
 
             {/* Modal Body */}
-            <div className="space-y-5 p-6">
+            <div className="stack-layout p-6">
 
               <div>
 
@@ -629,18 +632,12 @@ export default function SchoolsTable({
                 </select>
 
                 <p className="mt-2 text-xs text-slate-500">
-                  Inactive schools remain in LearnBoard but cannot be selected for new assignments.
+                  Inactive schools remain in LumenTrail but cannot be selected for new assignments.
                 </p>
 
               </div>
 
-              {editError && (
-
-                <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-700">
-                  {editError}
-                </div>
-
-              )}
+              {editError && <Notification type="error" message={editError} onClose={() => setEditError("")} />}
 
             </div>
 
@@ -653,8 +650,8 @@ export default function SchoolsTable({
                   closeManage
                 }
                 disabled={saving}
-                className="rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
-              >
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
+              ><ActionIcon name="close" />
                 Cancel
               </button>
 
@@ -664,8 +661,8 @@ export default function SchoolsTable({
                   saveSchool
                 }
                 disabled={saving}
-                className="rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50"
-              >
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50"
+              ><ActionIcon name="save" />
                 {saving
                   ? "Saving..."
                   : "Save Changes"}

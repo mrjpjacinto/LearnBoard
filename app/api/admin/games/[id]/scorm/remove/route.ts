@@ -71,7 +71,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "Only Super Admin can remove SCORM packages.",
+            "Only a Super Admin can remove SCORM packages.",
         },
         {
           status: 403,
@@ -310,7 +310,7 @@ export async function DELETE(
      * STEP 4:
      * Defensive cleanup.
      *
-     * All LearnBoard SCORM files for a
+     * All LumenTrail SCORM files for a
      * game live below the game's folder.
      * Cleaning the whole folder catches
      * orphaned files from interrupted

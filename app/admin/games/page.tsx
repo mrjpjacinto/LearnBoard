@@ -86,7 +86,7 @@ export default async function GamesPage() {
 
   /*
    * Games, subjects and skills are
-   * part of the shared LearnBoard
+   * part of the shared LumenTrail
    * content library.
    *
    * Do not include SCORM package
@@ -288,12 +288,9 @@ export default async function GamesPage() {
   return (
     <main className="min-h-screen bg-[#F4F7FB] p-6 lg:p-8">
       <div className="mx-auto max-w-[1500px]">
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6366F1]">
-            Learning Content
-          </p>
+        <div className="mb-layout">
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#172033]">
+          <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
             Games
           </h1>
 
@@ -306,7 +303,7 @@ export default async function GamesPage() {
         </div>
 
         <section
-          className={`mb-7 grid gap-4 sm:grid-cols-2 ${
+          className={`mb-layout grid gap-layout sm:grid-cols-2 ${
             isSuperAdmin
               ? "xl:grid-cols-4"
               : "xl:grid-cols-3"
@@ -346,14 +343,12 @@ export default async function GamesPage() {
           </div>
         ) : (
           <GamesLibrary
+            packages={packages}
             games={games}
             subjects={
               subjects
             }
             skills={skills}
-            packages={
-              packages
-            }
             isSuperAdmin={
               isSuperAdmin
             }
@@ -374,16 +369,16 @@ function StatCard({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-[#E3E8F2] bg-white px-5 py-3 shadow-sm">
       <p className="text-sm font-semibold text-[#667085]">
         {label}
       </p>
 
-      <p className="mt-3 text-3xl font-bold tracking-tight text-[#172033]">
+      <p className="mt-1 text-3xl font-bold tracking-tight text-[#172033]">
         {value}
       </p>
 
-      <p className="mt-2 text-xs text-[#98A2B3]">
+      <p className="mt-1 text-xs text-[#98A2B3]">
         {detail}
       </p>
     </div>

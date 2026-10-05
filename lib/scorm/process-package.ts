@@ -699,7 +699,7 @@ export async function processScormPackage({
       .from("games")
       .update({
         scorm_version:
-          scormVersion,
+          scormVersion ? `SCORM ${scormVersion}` : null,
         launch_file:
           resolvedLaunchFile,
         package_path:

@@ -1,3 +1,5 @@
+
+import ActionIcon from "@/components/ActionIcon";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -102,7 +104,7 @@ export default async function AddLearningPathPage() {
           </p>
         </div>
 
-        <div className="mt-7">
+        <div className="mt-layout">
           <AddLearningPathForm
             isSuperAdmin={isSuperAdmin}
             schools={schools}
@@ -116,20 +118,5 @@ export default async function AddLearningPathPage() {
   );
 }
 
-function ChevronRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4 text-[#98A2B3]"
-      aria-hidden="true"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
-}
+function ChevronRightIcon() { return <ActionIcon name="next" />; }
 

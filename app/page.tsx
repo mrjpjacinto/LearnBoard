@@ -48,7 +48,7 @@ export default function LoginPage() {
       await supabase.auth.signOut();
 
       setError(
-        "Your LearnBoard profile could not be found."
+        "Your LumenTrail profile could not be found."
       );
 
       setLoading(false);
@@ -59,7 +59,7 @@ export default function LoginPage() {
       await supabase.auth.signOut();
 
       setError(
-        "This LearnBoard account is inactive."
+        "This LumenTrail account is inactive."
       );
 
       setLoading(false);
@@ -130,9 +130,7 @@ export default function LoginPage() {
         <section className="hidden min-h-[650px] flex-col justify-between bg-slate-900 p-12 text-white md:flex">
 
           <div>
-            <div className="text-3xl font-bold">
-              LearnBoard
-            </div>
+            <div className="text-3xl font-bold">LumenTrail</div>
 
             <p className="mt-2 text-slate-300">
               eLearning Platform
@@ -153,7 +151,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-sm text-slate-400">
-            LearnBoard Learning Management System
+            LumenTrail Learning Management System
           </p>
 
         </section>
@@ -165,9 +163,7 @@ export default function LoginPage() {
 
             <div className="mb-10 md:hidden">
 
-              <div className="text-3xl font-bold text-slate-900">
-                LearnBoard
-              </div>
+              <div className="text-3xl font-bold text-slate-900">LumenTrail</div>
 
               <p className="text-slate-500">
                 eLearning Platform
@@ -180,7 +176,7 @@ export default function LoginPage() {
             </h2>
 
             <p className="mt-2 text-slate-500">
-              Sign in to continue to LearnBoard.
+              Sign in to continue to LumenTrail.
             </p>
 
             {/* ROLE SELECTOR */}
@@ -316,7 +312,7 @@ export default function LoginPage() {
             </form>
 
             <p className="mt-8 text-center text-xs text-slate-400">
-              Secure access powered by LearnBoard
+              Secure access powered by LumenTrail
             </p>
 
           </div>

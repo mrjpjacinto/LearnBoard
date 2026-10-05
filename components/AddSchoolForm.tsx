@@ -1,4 +1,8 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+import { addButtonClass } from "@/lib/ui/buttons";
+
 
 import {
   FormEvent,
@@ -132,7 +136,7 @@ export default function AddSchoolForm() {
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Create a new school in LearnBoard.
+                  Create a new school in LumenTrail.
                 </p>
               </div>
 
@@ -168,7 +172,7 @@ export default function AddSchoolForm() {
               }
             >
 
-              <div className="space-y-5 p-6">
+              <div className="stack-layout p-6">
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -217,11 +221,7 @@ export default function AddSchoolForm() {
                   </p>
                 </div>
 
-                {error && (
-                  <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-700">
-                    {error}
-                  </div>
-                )}
+                {error && <Notification type="error" message={error} onClose={() => setError("")} />}
 
               </div>
 
@@ -233,15 +233,15 @@ export default function AddSchoolForm() {
                     closeModal
                   }
                   disabled={saving}
-                  className="rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
-                >
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
+                ><ActionIcon name="close" />
                   Cancel
                 </button>
 
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-50"
+                  className={addButtonClass}
                 >
                   {!saving && (
                     <svg

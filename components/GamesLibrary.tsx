@@ -1,9 +1,14 @@
 "use client";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import {
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
+import { useCardDrag } from "./useCardDrag";
+import { reorderGames } from "@/lib/ui/reorder-games";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PrimaryAddButton from "@/components/PrimaryAddButton";
@@ -58,7 +63,26 @@ export default function GamesLibrary({
   isSuperAdmin,
 }: GamesLibraryProps) {
   const router = useRouter();
+  const stored = useSyncExternalStore(subscribeOrder, readOrder, () => "");
+  const savedIds = useMemo(() => { try { const value: unknown = JSON.parse(stored); return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []; } catch { return []; } }, [stored]);
+  const [sort, setSort] = useState("custom");
+  const [direction, setDirection] = useState("ascending");
+  const [customIds, setCustomIds] = useState<string[] | null>(null);
+  const [dragged, setDragged] = useState<string | null>(null);
+  const [target, setTarget] = useState<string | null>(null);
+  const [orderMessage, setOrderMessage] = useState("");
+  const orderedGames = useMemo(() => {
+    const ranks = new Map((customIds || savedIds).map((id, index) => [id, index]));
+    return [...games].sort((a, b) => sort === "az" ? (direction === "ascending" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)) : sort === "date" ? (direction === "ascending" ? Date.parse(a.created_at) - Date.parse(b.created_at) : Date.parse(b.created_at) - Date.parse(a.created_at)) : (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity) || Date.parse(b.created_at) - Date.parse(a.created_at));
+  }, [games, sort, direction, customIds, savedIds]);
+  function moveGame(from: string, to: string) {
+    const ids = reorderGames(orderedGames.map(g => g.id), from, to);
+    setCustomIds(ids); setSort("custom");
+    try { localStorage.setItem("learnboard-game-library-order", JSON.stringify(ids)); window.dispatchEvent(new Event("learnboard-library-order")); setOrderMessage("Custom order saved in this browser."); }
+    catch { setOrderMessage("Custom order changed for this visit. Browser storage is unavailable."); }
+  }
 
+  const cardDrag = useCardDrag({ selector: "[data-library-game]", disabled: games.length < 2, onStart: setDragged, onTarget: setTarget, onDrop: moveGame, onEnd: () => { setDragged(null); setTarget(null); } });
   const [search, setSearch] =
     useState("");
 
@@ -91,7 +115,7 @@ export default function GamesLibrary({
           .trim()
           .toLowerCase();
 
-      return games.filter(
+      return orderedGames.filter(
         (game) => {
           const subject =
             subjects.find(
@@ -151,7 +175,7 @@ export default function GamesLibrary({
         }
       );
     }, [
-      games,
+      orderedGames,
       subjects,
       skills,
       search,
@@ -178,9 +202,9 @@ export default function GamesLibrary({
 
   return (
     <section>
-      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex w-full flex-col gap-3 md:flex-row xl:max-w-4xl">
-          <div className="relative min-w-0 flex-1">
+      <div className="mb-layout flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap">
+          <div className="relative min-w-[200px] flex-1">
             <SearchIcon />
 
             <input
@@ -253,18 +277,28 @@ export default function GamesLibrary({
               )
             )}
           </select>
+          <details className="relative min-w-40">
+            <summary className="flex h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-medium text-[#475467] [&::-webkit-details-marker]:hidden">{sort === "custom" ? "Custom" : sort === "date" ? "Date Uploaded" : "A\u2013Z"}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4"><path d="m6 9 6 6 6-6" /></svg></summary>
+            <div className="absolute right-0 z-30 mt-2 w-52 rounded-xl border border-[#D8DEEA] bg-white p-1.5 text-sm shadow-lg">
+              <div role="group" aria-label="Sort games">{[["custom", "Custom"], ["date", "Date Uploaded"], ["az", "A\u2013Z"]].map(([value, label]) => <button type="button" key={value} aria-pressed={sort === value} onClick={() => setSort(value)} className={"flex w-full items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-[#F4F7FB] " + (sort === value ? "bg-[#EEF0FF] font-semibold text-[#4F46E5]" : "text-[#475467]")}>{label}{sort === value && <span aria-hidden="true">&#10003;</span>}</button>)}</div>
+              <hr className="my-1.5 border-[#E3E8F2]" />
+              <div role="group" aria-label="Sort direction">{[["ascending", "Ascending"], ["descending", "Descending"]].map(([value, label]) => <button type="button" key={value} aria-pressed={direction === value} onClick={() => setDirection(value)} className={"flex w-full items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-[#F4F7FB] " + (direction === value ? "bg-[#EEF0FF] font-semibold text-[#4F46E5]" : "text-[#475467]")}>{label}{direction === value && <span aria-hidden="true">&#10003;</span>}</button>)}</div>
+            </div>
+          </details>
         </div>
 
         {isSuperAdmin && (
           <PrimaryAddButton
             onClick={goToAddGame}
-            className="self-start xl:self-auto"
+            className="shrink-0 whitespace-nowrap self-start xl:self-auto"
           >
             Add Game
           </PrimaryAddButton>
         )}
       </div>
 
+      <p className="mb-3 text-xs text-[#667085]">Press and hold a card to drag it into your preferred order.</p>
+      <p role="status" className="sr-only">{orderMessage}</p>
       {games.length === 0 ? (
         <EmptyState
           isSuperAdmin={
@@ -281,7 +315,7 @@ export default function GamesLibrary({
             <GameIcon />
           </div>
 
-          <h2 className="mt-5 text-lg font-bold text-[#172033]">
+          <h2 className="mt-layout text-lg font-bold text-[#172033]">
             No games found
           </h2>
 
@@ -291,19 +325,14 @@ export default function GamesLibrary({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-layout sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1920px]:grid-cols-5">
           {filteredGames.map(
             (game) => (
+              <div key={game.id} data-library-game={game.id} data-sort-id={game.id} {...cardDrag(game.id)} tabIndex={0} aria-label={`Reorder ${game.name}. Hold to drag or use arrow keys.`}
+                onKeyDown={e => { const index = orderedGames.findIndex(g => g.id === game.id); const next = index + (e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0); if (next !== index && orderedGames[next]) { e.preventDefault(); moveGame(game.id, orderedGames[next].id); } }}
+                className={`relative min-w-0 touch-none select-none self-start rounded-2xl ${target === game.id ? "ring-2 ring-[#6366F1]" : ""} ${dragged === game.id ? "opacity-50" : ""}`}>
               <GameCard
-                key={game.id}
                 game={game}
-                subject={
-                  subjects.find(
-                    (subject) =>
-                      subject.id ===
-                      game.subject_id
-                  ) || null
-                }
                 skill={
                   skills.find(
                     (skill) =>
@@ -326,6 +355,7 @@ export default function GamesLibrary({
                   isSuperAdmin
                 }
               />
+              </div>
             )
           )}
         </div>
@@ -336,13 +366,11 @@ export default function GamesLibrary({
 
 function GameCard({
   game,
-  subject,
   skill,
   packageStatus,
   isSuperAdmin,
 }: {
   game: GameRow;
-  subject: SubjectRow | null;
   skill: SkillRow | null;
   packageStatus:
     | string
@@ -351,12 +379,14 @@ function GameCard({
 }) {
   return (
     <Link
+      draggable={false}
       href={`/admin/games/${game.id}`}
-      className="group overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#CDD5E4] hover:shadow-md"
+      className="group block overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#CDD5E4] hover:shadow-md"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-[#EEF0FF]">
         {game.image_path ? (
           <img
+            draggable={false}
             src={getGameImageUrl(
               game.image_path
             )}
@@ -396,25 +426,15 @@ function GameCard({
           {game.name}
         </h2>
 
-        <div className="mt-3 flex min-h-6 flex-wrap gap-2">
-          {subject ? (
-            <span className="rounded-lg bg-[#EEF0FF] px-2.5 py-1 text-[11px] font-semibold text-[#4F46E5]">
-              {subject.name}
-            </span>
-          ) : (
-            <span className="rounded-lg bg-[#F2F4F7] px-2.5 py-1 text-[11px] font-semibold text-[#98A2B3]">
-              Uncategorized
-            </span>
-          )}
-
+        {skill && <div className="mt-2 flex flex-wrap gap-2">
           {skill && (
             <span className="rounded-lg bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-semibold text-[#667085] ring-1 ring-[#E8ECF4]">
               {skill.name}
             </span>
           )}
-        </div>
+        </div>}
 
-        <div className="mt-4 flex items-center justify-between border-t border-[#EDF0F5] pt-3">
+        <div className="mt-2 flex items-center justify-between border-t border-[#EDF0F5] pt-3">
           {isSuperAdmin ? (
             <span className="text-xs font-medium text-[#98A2B3]">
               SCORM package
@@ -426,7 +446,7 @@ function GameCard({
           )}
 
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#6366F1]">
-            Manage
+            {isSuperAdmin ? "Manage" : "View Details"}
             <ChevronRightIcon />
           </span>
         </div>
@@ -502,7 +522,7 @@ function EmptyState({
         <GameIcon />
       </div>
 
-      <h2 className="mt-5 text-lg font-bold text-[#172033]">
+      <h2 className="mt-layout text-lg font-bold text-[#172033]">
         {isSuperAdmin
           ? "Add your first game"
           : "No games available"}
@@ -515,7 +535,7 @@ function EmptyState({
       </p>
 
       {isSuperAdmin && (
-        <div className="mt-6 flex justify-center">
+        <div className="mt-layout flex justify-center">
           <PrimaryAddButton
             onClick={onAdd}
           >
@@ -596,19 +616,12 @@ function GameIcon() {
   );
 }
 
-function ChevronRightIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5"
-      aria-hidden="true"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
-  );
+function ChevronRightIcon() { return <ActionIcon name="next" />; }
+function subscribeOrder(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("learnboard-library-order", callback);
+  return () => { window.removeEventListener("storage", callback); window.removeEventListener("learnboard-library-order", callback); };
+}
+function readOrder() {
+  try { return localStorage.getItem("learnboard-game-library-order") || ""; } catch { return ""; }
 }

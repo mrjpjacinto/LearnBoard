@@ -162,7 +162,7 @@ export async function DELETE(
      *
      * This allows database relationships
      * to stop deletion if protected
-     * LearnBoard records still depend
+     * LumenTrail records still depend
      * on the game.
      *
      * Storage remains untouched if the
@@ -184,7 +184,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           error:
-            "This game could not be deleted. It may still be connected to other LearnBoard records.",
+            "This game could not be deleted. It may still be connected to other LumenTrail records.",
         },
         {
           status: 409,

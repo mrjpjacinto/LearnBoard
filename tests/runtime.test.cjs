@@ -21,7 +21,7 @@ test("runtime rejects malformed scores, statuses, oversized suspend data and ses
 test("sandbox bridge exposes synchronous SCORM APIs, sends snapshots and authenticates acknowledgments",()=>{
  const messages=[],listeners={},parent={postMessage:(data,origin)=>messages.push({data:structuredClone(data),origin})};
  const window={addEventListener:(name,fn)=>listeners[name]=fn};
- vm.runInNewContext(scormBridge({"cmi.core.lesson_status":"incomplete","cmi.core.student_id":"student"},"https://lms.test","attempt"),{window,parent,setInterval:()=>0});
+ vm.runInNewContext(scormBridge({"cmi.core.lesson_status":"incomplete","cmi.core.student_id":"student"},"https://lms.test","attempt"),{window,parent,document:{readyState:"loading",addEventListener:()=>{}},setInterval:()=>0});
  assert.equal(window.API.LMSGetValue("cmi.core.lesson_status"),"");assert.equal(window.API.LMSInitialize(""),"true");assert.equal(window.API.LMSInitialize(""),"false");
  assert.equal(window.API.LMSSetValue("cmi.core.student_id","attacker"),"false");assert.equal(window.API.LMSSetValue("cmi.core.lesson_status","completed"),"true");assert.equal(window.API.LMSGetValue("cmi.core.lesson_status"),"completed");
  assert.equal(window.API.LMSCommit(""),"true");const commit=messages.find(m=>m.data.type==="learnboard-runtime");assert.equal(commit.origin,"https://lms.test");assert.equal(commit.data.raw["cmi.core.lesson_status"],"completed");

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       profile.role !== "super_admin"
     ) {
       return NextResponse.json(
-        { error: "Super Administrator access required." },
+        { error: "Super Admin access is required." },
         { status: 403 }
       );
     }

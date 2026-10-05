@@ -277,17 +277,14 @@ export default async function UsersPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
           <div>
-            <p className="text-sm font-semibold tracking-wide text-[#6366F1]">
-              USER MANAGEMENT
-            </p>
 
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#172033]">
+            <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
               Users
             </h1>
 
             <p className="mt-2 text-slate-500">
               {isSuperAdmin
-                ? "Manage administrators and students across LearnBoard schools."
+                ? "Manage administrators and students across LumenTrail schools."
                 : "Manage administrators and students in your school."}
             </p>
           </div>
@@ -326,8 +323,8 @@ export default async function UsersPage() {
           </div>
         </div>
 
-        {/* Statistics */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        {/* Failed queries are not zero users. */}
+        {!loadError && <div className="mt-layout grid gap-layout sm:grid-cols-3">
 
           <StatCard
             label="Total Users"
@@ -348,13 +345,21 @@ export default async function UsersPage() {
             }
           />
 
-        </div>
+        </div>}
 
         {/* Users */}
         {loadError ? (
-          <div className="mt-8 rounded-2xl border border-red-100 bg-white p-6 text-red-600 shadow-sm">
+          <div className="mt-layout rounded-2xl border border-red-100 bg-white p-6 text-red-600 shadow-sm">
             Unable to load users:{" "}
             {loadError}
+            {isSchoolAdmin && !currentProfile.school_id && (
+              <p className="mt-3 text-sm">
+                Your stored profile role is School Admin (admin). Platform owners require
+                a reviewed profile correction to Super Admin; a missing school does not
+                grant platform access. <a className="underline" href="/api/account/identity">View your authenticated account identity</a>
+                {" "}to verify the account before requesting a correction.
+              </p>
+            )}
           </div>
         ) : (
           <UsersTable
@@ -386,13 +391,13 @@ function StatCard({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E3E8F2] bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-[#E3E8F2] bg-white px-6 py-3 shadow-sm">
 
       <p className="text-sm font-medium text-slate-500">
         {label}
       </p>
 
-      <p className="mt-2 text-3xl font-bold text-[#172033]">
+      <p className="mt-1 text-3xl font-bold text-[#172033]">
         {value}
       </p>
 

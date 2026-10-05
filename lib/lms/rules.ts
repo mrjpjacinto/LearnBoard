@@ -1,7 +1,7 @@
 import type { Schedule } from "./types";
 
 export function availability(schedule: Schedule, now = Date.now()) {
-  if (schedule.status !== "active") return "Archived";
+  if (schedule.status !== "active" && schedule.status !== "scheduled") return "Archived";
   if (schedule.available_from && Date.parse(schedule.available_from) > now) return "Upcoming";
   if (schedule.available_until && Date.parse(schedule.available_until) <= now) return "Closed";
   return "Available";

@@ -1,4 +1,7 @@
 "use client";
+import { Notification } from "./LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import {
   ChangeEvent,
@@ -399,64 +402,9 @@ export default function GameEditForm({
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="space-y-6"
+      className="stack-layout"
     >
-      {(success || error) && (
-        <div
-          className="pointer-events-none fixed right-6 top-6 z-[100] w-[calc(100%-2rem)] max-w-md"
-          aria-live="polite"
-        >
-          {success && (
-            <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 shadow-lg shadow-slate-900/10">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                <CheckIcon />
-              </div>
-
-              <div className="min-w-0 flex-1 pt-1">
-                <p className="text-sm font-semibold text-emerald-800">
-                  {success}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setSuccess("")
-                }
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-emerald-600 transition hover:bg-emerald-100"
-                aria-label="Close notification"
-              >
-                <CloseIcon />
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 shadow-lg shadow-slate-900/10">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-                <ErrorIcon />
-              </div>
-
-              <div className="min-w-0 flex-1 pt-1">
-                <p className="text-sm font-semibold text-red-800">
-                  {error}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setError("")
-                }
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-600 transition hover:bg-red-100"
-                aria-label="Close notification"
-              >
-                <CloseIcon />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      {error ? <Notification type="error" message={error} onClose={() => setError("")} /> : success ? <Notification type="success" message={success} onClose={() => setSuccess("")} /> : null}
 
       <div className="rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
         <div className="border-b border-[#E8ECF4] px-6 py-5">
@@ -470,7 +418,7 @@ export default function GameEditForm({
           </p>
         </div>
 
-        <div className="space-y-6 p-6">
+        <div className="stack-layout p-6">
           <div>
             <label
               htmlFor="game-title"
@@ -536,7 +484,7 @@ export default function GameEditForm({
             />
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-layout md:grid-cols-2">
             <div>
               <label
                 htmlFor="game-subject"
@@ -564,7 +512,7 @@ export default function GameEditForm({
                 className="h-12 w-full rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm text-[#172033] outline-none transition focus:border-[#818CF8] focus:ring-4 focus:ring-[#6366F1]/10 disabled:bg-[#F8FAFC]"
               >
                 <option value="">
-                  Select subject
+                  Select a subject
                 </option>
 
                 {subjects.map(
@@ -640,7 +588,7 @@ export default function GameEditForm({
         </div>
 
         <div className="p-6">
-          <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-center">
+          <div className="grid gap-layout lg:grid-cols-[300px_minmax(0,1fr)] lg:items-center">
             <div className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-[#F8FAFC]">
               <div className="aspect-[4/3]">
                 {displayedImage ? (
@@ -712,7 +660,7 @@ export default function GameEditForm({
           type="submit"
           disabled={saving}
           className="inline-flex h-12 items-center justify-center rounded-xl bg-[#6366F1] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#818CF8] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
+        ><ActionIcon name="save" />
           {saving
             ? "Saving..."
             : "Save Changes"}
@@ -762,20 +710,4 @@ function ErrorIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M6 6l12 12" />
-      <path d="M18 6 6 18" />
-    </svg>
-  );
-}
+function CloseIcon() { return <ActionIcon name="close" />; }

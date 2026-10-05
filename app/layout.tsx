@@ -13,7 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LearnBoard",
+  title: "LumenTrail",
+  icons: { icon: "/lumentrail-icon-dark.png", apple: "/lumentrail-icon-dark.png" },
   description: "Learning Paths, interactive games, and student progress.",
 };
 

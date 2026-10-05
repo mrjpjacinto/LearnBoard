@@ -1,8 +1,22 @@
 @import "tailwindcss";
 
 :root {
+  --layout-gap: 20px;
   --background: #ffffff;
   --foreground: #171717;
+}
+
+/* Shared distance between page sections, cards, and stacked panels. */
+@utility gap-layout { gap: var(--layout-gap); }
+@utility gap-x-layout { column-gap: var(--layout-gap); }
+@utility gap-y-layout { row-gap: var(--layout-gap); }
+@utility mt-layout { margin-top: var(--layout-gap); }
+@utility mb-layout { margin-bottom: var(--layout-gap); }
+@utility my-layout { margin-block: var(--layout-gap); }
+@utility stack-layout {
+  :where(& > :not(:last-child)) {
+    margin-block-end: var(--layout-gap);
+  }
 }
 
 @theme inline {
@@ -23,4 +37,32 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Hide scrollbar tracks while preserving wheel, touch and keyboard scrolling. */
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Student screens retain readable light surfaces even with OS dark mode. */
+.student-portal { color-scheme: light; overflow-wrap: anywhere; }
+.student-portal :where(a, button, summary, select, input, textarea):focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 3px;
+}
+
+.admin-portal { color-scheme: light; }
+:where(.admin-portal, .student-portal) .grid > * { min-width: 0; }
+:where(.admin-portal, .student-portal) :where(input, select, textarea) { max-width: 100%; }
+:where(.admin-portal, .student-portal) :where(h1, h2, h3) { overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .admin-portal main :where(.px-6, .px-8) { padding-inline: 1rem; }
+  :where(.admin-portal, .student-portal) :where(input, select, textarea) { font-size: 16px; }
+  :where(.admin-portal, .student-portal) .overflow-x-auto { -webkit-overflow-scrolling: touch; }
 }

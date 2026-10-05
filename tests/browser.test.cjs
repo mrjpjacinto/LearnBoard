@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Node's test runner uses CommonJS for .cjs files. */
 const test=require("node:test"),assert=require("node:assert/strict"),http=require("node:http"),path=require("node:path"),os=require("node:os"),fs=require("node:fs");
 const load=require("./load-typescript.cjs"),{scormBridge}=load("lib/scorm/bridge.ts");
 let chromium;
@@ -24,8 +25,8 @@ test("SCORM package sandbox supports APIs, credentialed assets and prevents pare
 
 test("production app denies unauthenticated and cross-origin mutations",{skip:!process.env.LEARNBOARD_TEST_URL?"Set LEARNBOARD_TEST_URL to a running production preview":false},async()=>{
  const origin=process.env.LEARNBOARD_TEST_URL;
- for(const route of ["/admin/paths","/admin/assignments","/admin/reports","/admin/settings","/student"]){const response=await fetch(origin+route,{redirect:"manual"}); if ([307,308].includes(response.status)) assert.equal(response.headers.get("location"),"/"); else { assert.equal(response.status,200); assert.match(await response.text(),/NEXT_REDIRECT|http-equiv="refresh"/); }}
- for(const route of ["/api/admin/reports","/api/admin/reports/progress"]){assert.equal((await fetch(origin+route)).status,401);}
+ for(const route of ["/admin","/admin/schools","/admin/users","/admin/classes","/admin/subjects","/admin/games","/admin/games/add","/admin/paths","/admin/paths/add","/admin/paths/00000000-0000-0000-0000-000000000001/edit","/admin/paths/00000000-0000-0000-0000-000000000001/games","/admin/assignments","/admin/reports","/admin/settings","/student"]){const response=await fetch(origin+route,{redirect:"manual"}); if ([307,308].includes(response.status)) assert.equal(response.headers.get("location"),"/"); else { assert.equal(response.status,200); assert.match(await response.text(),/NEXT_REDIRECT|http-equiv="refresh"/); }}
+ for(const route of ["/api/admin/reports","/api/admin/reports/progress","/api/admin/reports/00000000-0000-0000-0000-000000000001"]){assert.equal((await fetch(origin+route)).status,401);}
  const post=await fetch(origin+"/api/student/launch",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});assert.equal(post.status,401);
  const csrf=await fetch(origin+"/api/admin/assignments",{method:"POST",headers:{Origin:"null","Content-Type":"application/json"},body:"{}"});assert.equal(csrf.status,403);
 });

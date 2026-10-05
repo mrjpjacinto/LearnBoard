@@ -1,7 +1,7 @@
 import "server-only";
 import { authorize, checkDb, LmsError, uuid } from "@/lib/lms/auth";
 import { availability } from "@/lib/lms/rules";
-import { assignmentColumns, classAssignmentColumns, attemptColumns, type Assignment, type ClassAssignment, type Schedule, type Profile } from "@/lib/lms/types";
+import { attemptColumns, type Assignment, type ClassAssignment, type Schedule, type Profile } from "@/lib/lms/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 async function contentAuth(id: string, token: string) {
   const admin=createAdminClient();
@@ -23,13 +23,13 @@ export async function learningSession(id: string, contentToken?: string) {
   const config = attempt.launch_config as { deadline?: string | null; passing_score?: number; session_token?: string; scorm_version?: string; allow_resume?: boolean; session_base?: number; session_started_at?: string };
   if (!config.session_token || !config.scorm_version) throw new LmsError("Launch this game from My Learning.", 403);
   if (config.deadline && Date.parse(config.deadline) <= Date.now()) throw new LmsError("Time limit reached. Return to My Learning.", 403);
-  const { data: assignmentData, error: assignmentError } = await admin.from("assignments").select(assignmentColumns).eq("id", attempt.assignment_id).eq("student_id", profile.id).eq("school_id", profile.school_id!).maybeSingle();
+  const { data: assignmentData, error: assignmentError } = await admin.from("assignments").select("*").eq("id", attempt.assignment_id).eq("student_id", profile.id).eq("school_id", profile.school_id!).maybeSingle();
   checkDb(assignmentError);
   if (!assignmentData) throw new LmsError("Assignment is no longer available.", 403);
   const assignment = assignmentData as Assignment;
   let schedule: Schedule = assignment;
   if (assignment.group_assignment_id) {
-    const { data: sourceData, error: sourceError } = await admin.from("learning_board_group_assignments").select(classAssignmentColumns).eq("id", assignment.group_assignment_id).maybeSingle();
+    const { data: sourceData, error: sourceError } = await admin.from("learning_board_group_assignments").select("*").eq("id", assignment.group_assignment_id).maybeSingle();
     checkDb(sourceError);
     const source = sourceData as ClassAssignment | null;
     if (!source || source.board_id !== assignment.board_id) throw new LmsError("Class assignment is no longer available.", 403);

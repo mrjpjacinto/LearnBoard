@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   notFound,
@@ -286,7 +287,7 @@ export default async function GameManagePage({
   return (
     <main className="min-h-screen bg-[#F4F7FB] p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-7">
+        <div className="mb-layout">
           <Link
             href="/admin/games"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#667085] transition hover:text-[#6366F1]"
@@ -307,20 +308,15 @@ export default async function GameManagePage({
             Back to Games
           </Link>
 
-          <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="mt-layout flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#6366F1]">
-                Game Management
-              </p>
 
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#172033]">
+              <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
                 {game.name}
               </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#667085]">
-                Edit this game&apos;s
-                information and
-                settings.
+                {isSuperAdmin ? "Edit the information and settings for this game." : "View this learning material and its details."}
               </p>
             </div>
 
@@ -337,12 +333,13 @@ export default async function GameManagePage({
         <div
           className={
             isSuperAdmin
-              ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]"
+              ? "grid gap-layout xl:grid-cols-[minmax(0,1fr)_360px]"
               : ""
           }
         >
           <div>
             {isSuperAdmin && <div className="mb-4"><GamePublishing gameId={game.id} status={game.status} /></div>}
+            {isSuperAdmin ? (
             <GameEditForm
               game={{
                 id: game.id,
@@ -361,10 +358,23 @@ export default async function GameManagePage({
                 isSuperAdmin
               }
             />
+            ) : (
+              <section className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-bold text-[#172033]">Game Details</h2>
+                <p className="mt-2 text-sm text-[#667085]">Games are managed by Super Admin. You can add this material to Learning Paths for your school.</p>
+                {game.image_path && <div className="mt-layout aspect-[4/3] max-w-lg overflow-hidden rounded-xl bg-[#EEF0FF]"><Image unoptimized src={/^https?:\/\//.test(game.image_path) ? game.image_path : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/game-images/${game.image_path.split("/").map(encodeURIComponent).join("/")}`} alt={game.name} width={800} height={600} className="h-full w-full object-cover" /></div>}
+                <dl className="mt-layout space-y-4">
+                  <DetailRow label="Name" value={game.name} />
+                  <DetailRow label="Description" value={game.description || "No description added."} />
+                  <DetailRow label="Subject" value={subjects.find(s => s.id === game.subject_id)?.name || "Uncategorized"} />
+                  <DetailRow label="Orientation" value={game.orientation_mode || "landscape"} />
+                </dl>
+              </section>
+            )}
           </div>
 
           {isSuperAdmin && (
-            <aside className="space-y-5">
+            <aside className="stack-layout">
               <section className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
                 <div className="border-b border-[#E8ECF4] px-5 py-5">
                   <div className="flex items-start justify-between gap-3">
@@ -472,7 +482,7 @@ export default async function GameManagePage({
                   Package Readiness
                 </h2>
 
-                <div className="mt-5 space-y-4">
+                <div className="mt-layout space-y-4">
                   <ReadinessItem
                     label="ZIP uploaded"
                     state={
@@ -512,7 +522,7 @@ export default async function GameManagePage({
                 {processingFailed &&
                   packageRecord
                     ?.processing_error && (
-                    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                    <div className="mt-layout rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
                         Package Error
                       </p>

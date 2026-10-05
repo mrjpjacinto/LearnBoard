@@ -187,7 +187,7 @@ export default async function ClassesPage() {
     <main className="p-8 lg:p-10">
       <div className="mx-auto max-w-7xl">
 
-        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-layout flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm font-medium text-[#6366F1]">
@@ -223,34 +223,34 @@ export default async function ClassesPage() {
 
         </div>
 
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="mb-layout grid gap-layout sm:grid-cols-3">
 
-          <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-[#E3E8F2] bg-white px-5 py-3 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
               Total Classes
             </p>
 
-            <p className="mt-2 text-3xl font-bold text-[#172033]">
+            <p className="mt-1 text-3xl font-bold text-[#172033]">
               {classes.length}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-[#E3E8F2] bg-white px-5 py-3 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
               Active Classes
             </p>
 
-            <p className="mt-2 text-3xl font-bold text-[#172033]">
+            <p className="mt-1 text-3xl font-bold text-[#172033]">
               {activeClasses}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-[#E3E8F2] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-[#E3E8F2] bg-white px-5 py-3 shadow-sm">
             <p className="text-sm font-medium text-slate-500">
               Students in Classes
             </p>
 
-            <p className="mt-2 text-3xl font-bold text-[#172033]">
+            <p className="mt-1 text-3xl font-bold text-[#172033]">
               {memberCount}
             </p>
           </div>

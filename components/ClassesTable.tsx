@@ -1,4 +1,6 @@
 "use client";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import {
   useMemo,
@@ -413,8 +415,8 @@ export default function ClassesTable({
                               item
                             )
                           }
-                          className="rounded-lg border border-[#D8DEEA] bg-white px-4 py-2 text-sm font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
-                        >
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-4 py-2 text-sm font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+                        ><ActionIcon name="next" />
                           Manage
                         </button>
                       </td>
@@ -450,7 +452,7 @@ export default function ClassesTable({
                   closeClass
                 }
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-              >
+              ><ActionIcon name="next" />
                 ×
               </button>
             </div>
@@ -458,12 +460,12 @@ export default function ClassesTable({
             <div className="max-h-[calc(90vh-82px)] overflow-y-auto p-6">
 
               {error && (
-                <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div className="mb-layout rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {error}
                 </div>
               )}
 
-              <div className="grid gap-5 md:grid-cols-2">
+              <div className="grid gap-layout md:grid-cols-2">
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[#344054]">
@@ -515,7 +517,7 @@ export default function ClassesTable({
 
               </div>
 
-              <div className="mt-5">
+              <div className="mt-layout">
                 <label className="mb-2 block text-sm font-semibold text-[#344054]">
                   Description
                 </label>
@@ -535,20 +537,20 @@ export default function ClassesTable({
                 />
               </div>
 
-              <div className="mt-5 flex justify-end">
+              <div className="mt-layout flex justify-end">
                 <button
                   type="button"
                   onClick={saveClass}
                   disabled={saving}
-                  className="rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5558E8] disabled:opacity-50"
-                >
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#6366F1] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#5558E8] disabled:opacity-50"
+                ><ActionIcon name="save" />
                   {saving
                     ? "Saving..."
                     : "Save Changes"}
                 </button>
               </div>
 
-              <div className="my-7 border-t border-[#E8ECF4]" />
+              <div className="my-layout border-t border-[#E8ECF4]" />
 
               <div>
                 <div className="mb-4">
@@ -641,7 +643,7 @@ export default function ClassesTable({
                                   ? "border border-[#D8DEEA] bg-white text-slate-600 hover:bg-slate-50"
                                   : "bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF]"
                               }`}
-                            >
+                            ><ActionIcon name="delete" />
                               {busy
                                 ? "..."
                                 : assigned

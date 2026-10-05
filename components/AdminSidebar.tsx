@@ -1,10 +1,13 @@
 "use client";
 
+import { profileInitials } from "@/lib/lms/initials";
+import BrandIcon from "./BrandIcon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 
 type AdminSidebarProps = {
+  avatar?: string;
   role: string;
   fullName: string | null;
   email: string;
@@ -59,11 +62,6 @@ const navigation: NavigationItem[] = [
     icon: "paths",
   },
   {
-    name: "Assignments",
-    href: "/admin/assignments",
-    icon: "assignments",
-  },
-  {
     name: "Reports",
     href: "/admin/reports",
     icon: "reports",
@@ -76,6 +74,7 @@ const navigation: NavigationItem[] = [
 ];
 
 export default function AdminSidebar({
+  avatar,
   role,
   fullName,
   email,
@@ -97,7 +96,7 @@ export default function AdminSidebar({
       : "School Admin";
 
   const initials =
-    getInitials(displayName);
+    profileInitials(displayName);
 
   const visibleNavigation =
     navigation.filter(
@@ -107,32 +106,20 @@ export default function AdminSidebar({
     );
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[76px] md:w-[260px] shrink-0 flex-col bg-[#0F172A]">
+    <aside className="sticky top-0 flex h-dvh w-[64px] lg:w-[260px] shrink-0 flex-col bg-[#0F172A]">
 
-      <div className="flex h-[82px] items-center border-b border-white/[0.06] px-4 md:px-6">
+      <div className="flex h-[82px] items-center border-b border-white/[0.06] px-3 lg:px-6">
 
         <Link
           href="/admin"
           className="flex items-center gap-3"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#6366F1] text-lg font-bold text-white shadow-sm">
-            L
-          </div>
-
-          <div className="hidden md:block">
-            <p className="text-[17px] font-bold tracking-tight text-white">
-              LearnBoard
-            </p>
-
-            <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.18em] text-[#7F93B5]">
-              LMS
-            </p>
-          </div>
+          <BrandIcon /><div className="hidden lg:block"><p className="text-[17px] font-bold tracking-tight text-white">LumenTrail</p><p className="mt-0.5 text-[11px] text-[#7F93B5]">Path to Growth</p></div>
         </Link>
 
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-5 lg:px-3">
 
         <div className="space-y-1">
 
@@ -178,7 +165,7 @@ export default function AdminSidebar({
                     />
                   </span>
 
-                  <span className="hidden md:inline">
+                  <span className="hidden lg:inline">
                     {item.name}
                   </span>
                 </Link>
@@ -194,11 +181,12 @@ export default function AdminSidebar({
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
 
-          <div className="hidden md:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#263248] text-xs font-bold uppercase text-[#C7D2FE]">
-            {initials}
+          <Link href="/admin/settings" aria-label="Open account settings" className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-[5px] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A5B4FC]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#263248] text-xs font-bold uppercase text-[#C7D2FE]">
+            {avatar ? <img src={avatar} alt="Your profile" className="h-full w-full object-cover" /> : initials}
           </div>
 
-          <div className="hidden md:block min-w-0 flex-1">
+          <div className="hidden lg:block min-w-0 flex-1">
 
             <p className="truncate text-sm font-semibold text-white">
               {displayName}
@@ -210,6 +198,7 @@ export default function AdminSidebar({
 
           </div>
 
+          </Link>
           <LogoutButton
             iconOnly
           />
@@ -236,35 +225,6 @@ function isNavigationActive(
       `${href}/`
     )
   );
-}
-
-function getInitials(
-  value: string
-) {
-  const parts = value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-
-  if (
-    parts.length === 0
-  ) {
-    return "A";
-  }
-
-  if (
-    parts.length === 1
-  ) {
-    return parts[0]
-      .slice(0, 2)
-      .toUpperCase();
-  }
-
-  return `${parts[0][0]}${
-    parts[
-      parts.length - 1
-    ][0]
-  }`.toUpperCase();
 }
 
 function NavigationIcon({

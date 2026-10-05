@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { randomUUID } from "node:crypto";
 
 type CreatePathBody = {
   name?: unknown;
@@ -321,34 +322,14 @@ export async function POST(
      * client after explicitly enforcing
      * role and school ownership above.
      */
-    const {
-      data: path,
-      error: insertError,
-    } = await admin
+    // Return the known ID without a second read after the committed insert.
+    const path = {
+      id: randomUUID(), name, description: description || null, status,
+      school_id: pathSchoolId, created_by: user.id,
+    };
+    const { error: insertError } = await admin
       .from("learning_boards")
-      .insert({
-        name,
-        description:
-          description || null,
-        status,
-        school_id:
-          pathSchoolId,
-        created_by:
-          user.id,
-      })
-      .select(
-        `
-          id,
-          name,
-          description,
-          status,
-          school_id,
-          created_by,
-          created_at,
-          updated_at
-        `
-      )
-      .single();
+      .insert(path);
 
     if (insertError) {
       console.error(

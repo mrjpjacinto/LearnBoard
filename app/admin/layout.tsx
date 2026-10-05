@@ -1,3 +1,4 @@
+import { personalDetails } from "@/lib/lms/personal-details";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -40,10 +41,11 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FB]">
+    <div className="admin-portal min-h-screen bg-[#F4F7FB] text-[#172033]">
       <div className="flex min-h-screen">
 
         <AdminSidebar
+          avatar={personalDetails(user.user_metadata?.learnboard_profile).avatar}
           role={profile.role}
           fullName={profile.full_name}
           email={

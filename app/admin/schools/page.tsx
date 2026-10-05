@@ -70,17 +70,14 @@ export default async function SchoolsPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
           <div>
-            <p className="text-sm font-semibold tracking-wide text-[#6366F1]">
-              SCHOOL MANAGEMENT
-            </p>
 
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-[#172033]">
+            <h1 className="text-3xl font-bold tracking-tight text-[#172033]">
               Schools
             </h1>
 
             <p className="mt-2 max-w-2xl text-slate-500">
               Manage the schools using
-              LearnBoard and control
+              LumenTrail and control
               whether each school is
               active.
             </p>
@@ -91,7 +88,7 @@ export default async function SchoolsPage() {
         </div>
 
         {/* Statistics */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-layout grid gap-layout sm:grid-cols-3">
 
           <StatCard
             label="Total Schools"
@@ -115,7 +112,7 @@ export default async function SchoolsPage() {
 
         {/* Error */}
         {error ? (
-          <div className="mt-8 rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
+          <div className="mt-layout rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
 
             <p className="font-semibold text-red-700">
               Unable to load schools
@@ -128,7 +125,7 @@ export default async function SchoolsPage() {
           </div>
         ) : (
 
-          <div className="mt-8">
+          <div className="mt-layout">
 
             <SchoolsTable
               schools={
@@ -155,7 +152,7 @@ function StatCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E3E8F2] bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-[#E3E8F2] bg-white px-6 py-3 shadow-sm">
 
       <div className="flex items-start justify-between gap-4">
 
@@ -165,7 +162,7 @@ function StatCard({
             {label}
           </p>
 
-          <p className="mt-2 text-3xl font-bold tracking-tight text-[#172033]">
+          <p className="mt-1 text-3xl font-bold tracking-tight text-[#172033]">
             {value}
           </p>
 
