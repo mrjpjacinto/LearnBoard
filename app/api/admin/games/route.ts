@@ -1,3 +1,6 @@
+import { LmsError } from "@/lib/lms/auth";
+import { parseSkillIds } from "@/lib/lms/game-skills";
+import { validateGameSkills, saveGameSkills } from "@/lib/lms/game-skills-server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -112,8 +115,8 @@ export async function POST(
       "subjectId"
     );
 
-  const skillValue =
-    formData.get("skillId");
+  let skillIds: string[];
+  try { skillIds = parseSkillIds(formData, "skillId"); } catch { return NextResponse.json({error:"Choose at least one skill."},{status:400}); }
 
   const imageValue =
     formData.get("image");
@@ -139,11 +142,7 @@ export async function POST(
       ? subjectValue.trim()
       : "";
 
-  const skillId =
-    typeof skillValue ===
-    "string"
-      ? skillValue.trim()
-      : "";
+  const skillId = skillIds[0];
 
   if (!name) {
     return NextResponse.json(
@@ -360,70 +359,14 @@ export async function POST(
   }
 
   /*
-   * Skill is optional. If supplied,
+   * Every game requires a skill;
    * verify both that it is active
    * and that it belongs to the
    * selected subject.
    */
-  if (skillId) {
-    const {
-      data: skill,
-      error: skillError,
-    } = await admin
-      .from("skills")
-      .select(
-        `
-          id,
-          subject_id,
-          is_active
-        `
-      )
-      .eq("id", skillId)
-      .maybeSingle();
-
-    if (
-      skillError ||
-      !skill
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "The selected skill could not be found.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (
-      skill.subject_id !==
-      subjectId
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "The selected skill does not belong to this subject.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    if (!skill.is_active) {
-      return NextResponse.json(
-        {
-          error:
-            "The selected skill is inactive.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-  }
-
+  let classifications: Awaited<ReturnType<typeof validateGameSkills>>;
+  try { classifications = await validateGameSkills(admin, skillIds); } catch (error) { return NextResponse.json({error:error instanceof Error?error.message:"Unable to check skills."},{status:error instanceof LmsError?error.status:500}); }
+  const derivedSubjectId = classifications.primary.subject_id;
   /*
    * Create the game first so its ID
    * can be used for both Storage
@@ -440,9 +383,9 @@ export async function POST(
         description || null,
       status: "draft",
       subject_id:
-        subjectId,
+        derivedSubjectId,
       skill_id:
-        skillId || null,
+        skillId,
       created_by:
         user.id,
     })
@@ -486,6 +429,8 @@ export async function POST(
   let imageUploaded = false;
 
   try {
+    if (classifications.enabled) { const saved=await saveGameSkills(admin,game.id,skillIds,{},true); if(saved.error)throw Error("Unable to save game skills."); }
+
     /*
      * Upload the visual card image.
      */
@@ -627,10 +572,16 @@ export async function POST(
       );
     }
 
+    // Make the game available only after all package validation succeeds.
+    const { error: activationError } = await admin.from("games")
+      .update({ status: "published" }).eq("id", game.id);
+    if (activationError) throw new Error("Unable to activate the validated game.");
+
     return NextResponse.json(
       {
         game: {
           ...game,
+          status: "published",
           image_path:
             imagePath,
         },

@@ -1,4 +1,5 @@
 "use client";
+import { showToast } from "./LmsToast";
 import { Notification } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 import { addButtonClass } from "@/lib/ui/buttons";
@@ -98,6 +99,8 @@ export default function AddClassForm({
       setSchoolId("");
       setOpen(false);
 
+      showToast({ type: "success", message: "Class created." });
+
       router.refresh();
     } catch (err) {
       setError(
@@ -121,7 +124,7 @@ export default function AddClassForm({
       </PrimaryAddButton>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" onClick={event => { if (event.target === event.currentTarget) { if (!loading) setOpen(false); } }}>
 
           <div className="w-full max-w-lg rounded-2xl border border-[#E3E8F2] bg-white shadow-2xl">
 
@@ -148,7 +151,7 @@ export default function AddClassForm({
                 }
                 aria-label="Close"
                 disabled={loading}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -160,8 +163,8 @@ export default function AddClassForm({
                   className="h-5 w-5"
                   aria-hidden="true"
                 >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
+                  <path stroke="#DC2626" d="M18 6 6 18" />
+                  <path stroke="#DC2626" d="m6 6 12 12" />
                 </svg>
               </button>
 
@@ -276,7 +279,7 @@ export default function AddClassForm({
                     setOpen(false)
                   }
                   disabled={loading}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-[#E0E4FF] disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
                 ><ActionIcon name="close" />
                   Cancel
                 </button>

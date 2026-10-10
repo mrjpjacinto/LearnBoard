@@ -1,0 +1,12 @@
+Live status: user confirmed successful application on 2026-10-11. Read-only REST inspection confirms the expected functions are present; bodies, grants and policies are not independently verified. Do not rerun this migration.
+
+SCORM replacement cleanup activation
+
+Apply 005_scorm_cleanup_queue.sql only after explicit approval and a current verified database backup.
+The migration creates one private queue table and two service-role-only functions. It does not delete existing storage or enqueue existing packages.
+Successful future replacements enqueue previous ready packages. Jobs wait at least 35 minutes, longer than the 30-minute administrator preview token lifetime.
+All existing attempts (including completed history and legacy unpinned attempts), active game pointers, shared assets, and foreign-key dependencies retain their packages.
+The worker detaches eligible package metadata inside a database transaction before removing Storage objects. Failed file removals remain queued for retry.
+Deploy vercel.json with CRON_SECRET configured in the hosting environment. The daily cron uses /api/internal/scorm-cleanup; it rejects requests without the matching bearer secret.
+No scheduler deployment, database migration, or live storage cleanup has been executed as part of implementation.
+The migration still needs validation against a restored database and concurrency checks before live activation.

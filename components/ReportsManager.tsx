@@ -1,4 +1,5 @@
 ﻿"use client";
+import { Notification } from "./LmsToast";
 import Link from "next/link";
 import ActionIcon from "@/components/ActionIcon";
 
@@ -80,7 +81,7 @@ export default function ReportsManager({ schools, groups, students, boards, game
         </div>
       </details>
     </Card>
-    {error ? <Card className="mt-layout"><p role="alert" className="text-red-700">{error}</p></Card> : loading && !rows.length ? <Card className="mt-layout">Loading reports...</Card> : <>
+    {error ? <Card className="mt-layout"><Notification type="error" message={error} /><p className="text-sm text-[#667085]">Unable to load reports. Please try again.</p></Card> : loading && !rows.length ? <Card className="mt-layout">Loading reports...</Card> : <>
       {rows.length ? <Card className="mt-layout"><div className="max-h-[65vh] overflow-auto"><table className="w-full text-left text-sm"><thead className="sticky top-0 z-10 bg-white text-xs uppercase text-[#667085]"><tr>{[...(isSuperAdmin ? ["School"] : []), "Student", "Date", "Time", "Learning Material", "Correct / Incorrect"].map(h => <th className="p-3" key={h}>{h}</th>)}</tr></thead><tbody>{rows.map(r => <tr className="border-t border-[#E3E8F2]" key={r.id}>
         {isSuperAdmin && <td className="p-3">{r.school_name}</td>}<td className="p-3 font-semibold">{r.student_name}</td><td className="whitespace-nowrap p-3">{new Date(r.started_at).toLocaleDateString("en-PH", zone)}</td><td className="whitespace-nowrap p-3">{new Date(r.started_at).toLocaleTimeString("en-PH", zone)}</td>
         <td className="p-3"><Link href={"/admin/reports/" + r.id} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 font-semibold text-[#6366F1] hover:bg-[#EEF0FF]">View<ActionIcon name="next" /></Link></td><td className="p-3"><ResultsGraph correct={r.correct} incorrect={r.incorrect} /></td>

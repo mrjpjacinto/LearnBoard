@@ -381,7 +381,7 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="group rounded-2xl border border-[#E3E8F2] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C7D2FE] hover:shadow-md"
+      className="group rounded-2xl border border-[#E3E8F2] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#CBD5E1] hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-4">
 
@@ -399,7 +399,7 @@ function StatCard({
           </p>
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#6366F1] transition group-hover:bg-[#6366F1] group-hover:text-white">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F8FAFC] text-[#667085]">
           {icon}
         </div>
 

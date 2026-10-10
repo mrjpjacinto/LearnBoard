@@ -1,55 +1,18 @@
+import { readJson } from "@/lib/security/read-json";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { authorize, apiError } from "@/lib/lms/auth";
+
 
 export async function POST(
   request: Request
 ) {
-  const supabase =
-    await createClient();
+  let auth: Awaited<ReturnType<typeof authorize>>;
+  try { auth = await authorize(["super_admin","admin"]); } catch(error) { return apiError(error); }
+  const {admin,profile} = auth;
+  const isSuperAdmin = profile.role === "super_admin";
 
-  const {
-    data: { user },
-  } =
-    await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "Unauthorized." },
-      { status: 401 }
-    );
-  }
-
-  const { data: profile } =
-    await supabase
-      .from("profiles")
-      .select(
-        "role, is_active, school_id"
-      )
-      .eq("id", user.id)
-      .single();
-
-  const isSuperAdmin =
-    profile?.role ===
-    "super_admin";
-
-  const isSchoolAdmin =
-    profile?.role === "admin";
-
-  if (
-    !profile ||
-    !profile.is_active ||
-    (!isSuperAdmin &&
-      !isSchoolAdmin)
-  ) {
-    return NextResponse.json(
-      { error: "Forbidden." },
-      { status: 403 }
-    );
-  }
-
-  const body =
-    await request.json();
+  let body: Record<string,unknown>;
+  try { body = await readJson(request); } catch(error) { return apiError(error); }
 
   const name =
     typeof body.name ===
@@ -120,8 +83,7 @@ export async function POST(
     );
   }
 
-  const admin =
-    createAdminClient();
+
 
   const { data: school } =
     await admin

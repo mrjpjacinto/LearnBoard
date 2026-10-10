@@ -1,5 +1,7 @@
+import { sentenceResume } from "@/lib/scorm/sentence-resume";
 import { apiError, LmsError } from "@/lib/lms/auth";
 import { learningSession } from "@/lib/scorm/session";
+import { assertPlayerCanOpen, claimPlayerLaunch } from "@/lib/scorm/player-launch";
 import { scormBridge } from "@/lib/scorm/bridge";
 export async function GET(request: Request, { params }: { params: Promise<{ id: string; path: string[] }> }) {
   try {
@@ -8,10 +10,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!token || !path.length) throw new LmsError("Invalid content session.",403);
     if (path.some(p => !p || p === "." || p === ".." || /[\\/\u0000]/.test(p))) throw new LmsError("Invalid content path.", 404);
     const session = await learningSession(id,token);
-    if (path.length===1 && path[0]==="_launch") return Response.redirect(new URL(`/api/student/content/${id}/${token}/${session.package.launch_file!.split("/").map(encodeURIComponent).join("/")}`,request.url),302);
+    if (path.length===1 && path[0]==="_launch") {
+      assertPlayerCanOpen(session);
+      return Response.redirect(new URL(`/api/student/content/${id}/${token}/${session.package.launch_file!.split("/").map(encodeURIComponent).join("/")}`,request.url),302);
+    }
     const key = `${session.package.extraction_path}/${path.join("/")}`;
     const { data, error } = await session.admin.storage.from("scorm-packages").download(key);
     if (error || !data) throw new LmsError("Content file not found.", 404);
+    if (path.join("/") === session.package.launch_file) await claimPlayerLaunch(session);
     const types: Record<string,string> = { html: "text/html; charset=utf-8", htm: "text/html; charset=utf-8", js: "text/javascript", mjs: "text/javascript", css: "text/css", json: "application/json", xml: "application/xml", svg: "image/svg+xml", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4", woff: "font/woff", woff2: "font/woff2", wasm: "application/wasm" };
     const extension = path[path.length - 1].split(".").pop()!.toLowerCase();
     const headers: Record<string,string> = { "Content-Type": types[extension] || data.type || "application/octet-stream", "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "sandbox allow-scripts allow-forms allow-pointer-lock; frame-ancestors 'self'; base-uri 'self'; object-src 'none'" };
@@ -31,7 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       if (version === "1.2") initial["cmi.core.lesson_status"] ||= "incomplete";
       else { initial["cmi.completion_status"] ||= "incomplete"; initial["cmi.success_status"] ||= "unknown"; }
       const script = `<script>${scormBridge(initial, new URL(request.url).origin, id)}</script>`;
-      let html = await data.text();
+      let html = sentenceResume(await data.text(), initial);
       html = html.replace(/<script\b([^>]*\bsrc\s*=[^>]*)>/gi, (_match, attrs: string) => `<script${attrs.replace(/\s+crossorigin(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi, "")} crossorigin="use-credentials">`);
       html = html.replace(/<meta\b[^>]*http-equiv\s*=\s*["']?content-security-policy["']?[^>]*>/gi, "");
       html = /<head\b[^>]*>/i.test(html) ? html.replace(/<head\b[^>]*>/i, match => match + script) : script + html;

@@ -1,4 +1,6 @@
 "use client";
+import GameSkillsPicker from "./GameSkillsPicker";
+import { showToast } from "./LmsToast";
 import { Notification } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 import { addButtonClass } from "@/lib/ui/buttons";
@@ -84,7 +86,7 @@ export default function AddGameForm({
     );
 
   const subjectInputRef =
-    useRef<HTMLSelectElement | null>(
+    useRef<HTMLInputElement | null>(
       null
     );
 
@@ -101,13 +103,11 @@ export default function AddGameForm({
     setImagePreview,
   ] = useState("");
 
-  const [
-    subjectId,
-    setSubjectId,
-  ] = useState("");
 
-  const [skillId, setSkillId] =
-    useState("");
+
+  const [skillIds,setSkillIds] = useState<string[]>([]);
+  const skillId=skillIds[0] || "";
+  const subjectId=skills.find(skill=>skill.id===skillId)?.subject_id || "";
 
   const [name, setName] =
     useState("");
@@ -136,13 +136,7 @@ export default function AddGameForm({
   const [uploading, setUploading] =
     useState(false);
 
-  const availableSkills =
-    skills.filter(
-      (skill) =>
-        skill.is_active &&
-        skill.subject_id ===
-          subjectId
-    );
+
 
   function clearFieldError(
     field: keyof FieldErrors
@@ -577,10 +571,7 @@ export default function AddGameForm({
         subjectId
       );
 
-      formData.append(
-        "skillId",
-        skillId
-      );
+      skillIds.forEach(id=>formData.append("skill_ids",id));
 
       formData.append(
         "image",
@@ -614,6 +605,8 @@ export default function AddGameForm({
       router.push(
         "/admin/games"
       );
+
+      showToast({ type: "success", message: "Game uploaded and available." });
 
       router.refresh();
     } catch (err) {
@@ -734,7 +727,7 @@ export default function AddGameForm({
                     onClick={() =>
                       imageInputRef.current?.click()
                     }
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-[#EEF0FF] px-3 py-2 text-xs font-semibold text-[#4F46E5] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
                   ><ActionIcon name="next" />
                     Change image
                   </button>
@@ -747,7 +740,7 @@ export default function AddGameForm({
                     onClick={
                       removeImage
                     }
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-100 bg-white px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-100 bg-[#EEF0FF] px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   ><ActionIcon name="delete" />
                     Remove
                   </button>
@@ -765,122 +758,7 @@ export default function AddGameForm({
       </div>
 
       <div className="grid gap-layout md:grid-cols-2">
-        <div
-          ref={subjectSectionRef}
-          className="scroll-mt-8"
-        >
-          <label
-            htmlFor="game-subject"
-            className="mb-2 block text-sm font-semibold text-[#344054]"
-          >
-            Subject{" "}
-            <span className="text-red-600">
-              *
-            </span>
-          </label>
-
-          <select
-            ref={subjectInputRef}
-            id="game-subject"
-            value={subjectId}
-            disabled={uploading}
-            aria-invalid={
-              Boolean(
-                fieldErrors.subject
-              )
-            }
-            onChange={(event) => {
-              setSubjectId(
-                event.target.value
-              );
-
-              setSkillId("");
-
-              if (
-                event.target.value
-              ) {
-                clearFieldError(
-                  "subject"
-                );
-              }
-
-              setServerError("");
-            }}
-            className={`h-12 w-full rounded-xl border bg-white px-4 text-sm text-[#172033] outline-none transition focus:ring-4 disabled:bg-slate-50 disabled:opacity-70 ${
-              fieldErrors.subject
-                ? "border-red-400 focus:border-red-500 focus:ring-red-100"
-                : "border-[#D8DEEA] focus:border-[#818CF8] focus:ring-[#6366F1]/10"
-            }`}
-          >
-            <option value="">
-              Select a subject
-            </option>
-
-            {subjects.map(
-              (subject) => (
-                <option
-                  key={subject.id}
-                  value={subject.id}
-                >
-                  {subject.name}
-                </option>
-              )
-            )}
-          </select>
-
-          {fieldErrors.subject && (
-            <FieldError>
-              {fieldErrors.subject}
-            </FieldError>
-          )}
-        </div>
-
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <label
-              htmlFor="game-skill"
-              className="text-sm font-semibold text-[#344054]"
-            >
-              Skill
-            </label>
-
-            <span className="text-xs text-[#98A2B3]">
-              Optional
-            </span>
-          </div>
-
-          <select
-            id="game-skill"
-            value={skillId}
-            disabled={
-              uploading ||
-              !subjectId
-            }
-            onChange={(event) =>
-              setSkillId(
-                event.target.value
-              )
-            }
-            className="h-12 w-full rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm text-[#172033] outline-none transition focus:border-[#818CF8] focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:bg-[#F8FAFC] disabled:text-[#98A2B3]"
-          >
-            <option value="">
-              {subjectId
-                ? "General / No Specific Skill"
-                : "Select a subject first"}
-            </option>
-
-            {availableSkills.map(
-              (skill) => (
-                <option
-                  key={skill.id}
-                  value={skill.id}
-                >
-                  {skill.name}
-                </option>
-              )
-            )}
-          </select>
-        </div>
+        <div className="col-span-full"><GameSkillsPicker inputRef={subjectInputRef} subjects={subjects} skills={skills} value={skillIds} onChange={ids=>{setSkillIds(ids);clearFieldError("subject");setServerError("");}} disabled={uploading} />{fieldErrors.subject && <FieldError>{fieldErrors.subject}</FieldError>}</div>
       </div>
 
       <div
@@ -1097,7 +975,7 @@ export default function AddGameForm({
                 type="button"
                 onClick={removeFile}
                 disabled={uploading}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition hover:bg-white hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition hover:bg-[#EEF0FF] hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Remove selected file"
               >
                 <TrashIcon />
@@ -1141,7 +1019,7 @@ export default function AddGameForm({
               version, verifies the
               launch file and extracts
               the package. The game is
-              created as a draft.
+              available after its SCORM package passes validation.
             </p>
           </div>
         </div>
@@ -1155,12 +1033,12 @@ export default function AddGameForm({
           aria-disabled={
             uploading
           }
-          className={`inline-flex h-12 items-center justify-center rounded-xl border border-[#D8DEEA] bg-white px-5 text-sm font-semibold text-[#475467] transition ${
+          className={("inline-flex items-center gap-2 " + ((`inline-flex h-12 items-center justify-center rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-5 text-sm font-semibold text-[#4F46E5] transition ${
             uploading
               ? "pointer-events-none opacity-50"
               : "hover:bg-[#F8FAFC]"
-          }`}
-        >
+          }`) + " !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"))}
+        ><ActionIcon name="close" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />
           Cancel
         </Link>
 

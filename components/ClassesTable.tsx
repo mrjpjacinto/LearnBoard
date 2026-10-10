@@ -1,4 +1,6 @@
 "use client";
+import { Notification } from "./LmsToast";
+import { showToast } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 
 
@@ -179,6 +181,8 @@ export default function ClassesTable({
         );
       }
 
+      showToast({ type: "success", message: "Class updated." });
+
       router.refresh();
       closeClass();
     } catch (err) {
@@ -268,6 +272,8 @@ export default function ClassesTable({
                 },
               ]
       );
+
+      showToast({ type: "success", message: "Class updated." });
 
       router.refresh();
     } catch (err) {
@@ -415,7 +421,7 @@ export default function ClassesTable({
                               item
                             )
                           }
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-4 py-2 text-sm font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-[#EEF0FF] px-4 py-2 text-sm font-semibold text-[#4F46E5] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
                         ><ActionIcon name="next" />
                           Manage
                         </button>
@@ -431,7 +437,7 @@ export default function ClassesTable({
       </div>
 
       {selectedClass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4" onClick={event => { if (event.target === event.currentTarget) { closeClass(); } }}>
 
           <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-2xl">
 
@@ -451,7 +457,7 @@ export default function ClassesTable({
                 onClick={
                   closeClass
                 }
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                className="inline-flex items-center gap-2 flex h-9 w-9 items-center justify-center rounded-lg text-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               ><ActionIcon name="next" />
                 ×
               </button>
@@ -460,9 +466,7 @@ export default function ClassesTable({
             <div className="max-h-[calc(90vh-82px)] overflow-y-auto p-6">
 
               {error && (
-                <div className="mb-layout rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  {error}
-                </div>
+                <Notification type="error" message={error} onClose={() => setError("")} />
               )}
 
               <div className="grid gap-layout md:grid-cols-2">
@@ -638,11 +642,11 @@ export default function ClassesTable({
                                   student
                                 )
                               }
-                              className={`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                              className={("inline-flex items-center gap-2 " + (`rounded-lg px-4 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
                                 assigned
-                                  ? "border border-[#D8DEEA] bg-white text-slate-600 hover:bg-slate-50"
+                                  ? "border border-[#D8DEEA] bg-[#EEF0FF] text-slate-600 hover:bg-[#E0E4FF]"
                                   : "bg-[#EEF2FF] text-[#4F46E5] hover:bg-[#E0E7FF]"
-                              }`}
+                              }`))}
                             ><ActionIcon name="delete" />
                               {busy
                                 ? "..."

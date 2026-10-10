@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- Node's test runner uses CommonJS for .cjs files. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -13,10 +12,21 @@ const attemptId = '00000000-0000-0000-0000-000000000002';
 function mocked(file, imports) {
   const testModule = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  const requireMock = name => name === 'server-only' ? {} : Object.hasOwn(imports,name) ? imports[name] : require(name);
+  const requireMock = name => name === 'server-only' ? {} : Object.hasOwn(imports,name) ? imports[name] : name === '@/lib/security/read-json' ? load('lib/security/read-json.ts') : require(name);
   vm.runInThisContext(`(function(require,module,exports){${code}\n})`, { filename: file })(requireMock,testModule,testModule.exports);
   return testModule.exports;
 }
+
+test('assignment status validation accepts database lifecycle states and rejects archived', () => {
+  class ValidationError extends Error {}
+  const { scheduleInput } = mocked('lib/lms/validation.ts', {'./auth': {LmsError: ValidationError}});
+  const settings = {available_from: null, available_until: null, max_attempts: 1, time_limit_minutes: null, passing_score: 70, allow_resume: true};
+  for (const status of ['scheduled', 'active', 'expired', 'completed', 'cancelled']) {
+    assert.equal(scheduleInput({...settings, status}).status, status);
+  }
+  assert.throws(() => scheduleInput({...settings, status: 'archived'}), /valid assignment settings/);
+  assert.throws(() => scheduleInput({...settings, status: 'unknown'}), /valid assignment settings/);
+});
 function database(resolve, calls) {
   return { from(table) {
     const filters = {};
@@ -47,7 +57,7 @@ test('quiz graph counts recorded outcomes and distinct correct quizzes without i
   assert.deepEqual(summarizeQuizzes([{quiz_id:'q1',is_correct:false},{quiz_id:'q1',is_correct:true},{quiz_id:'q1',is_correct:true},{quiz_id:'q2',is_correct:false}]), {total_attempts:4,correct:2,incorrect:2,correct_quizzes:1});
 });
 test('personal metadata rejects structured values and limits text', () => {
-  assert.deepEqual(personalDetails({phone:{role:'super_admin'},job_title:'x'.repeat(120),bio:42}),{phone:'',job_title:'x'.repeat(100),bio:''});
+  assert.deepEqual(personalDetails({phone:{role:'super_admin'},job_title:'x'.repeat(120),bio:42}),{phone:'',job_title:'x'.repeat(100),bio:'',avatar:''});
 });
 
 test('saved Learning Path returns a success ID without a post-insert read and forces school-admin ownership', async () => {
@@ -131,6 +141,7 @@ for (const [suffix,method] of [['route.ts','PATCH'],['delete/route.ts','DELETE']
   let privilegedAccess=false;
   const supabase={auth:{getUser:async()=>({data:{user:{id:studentId}},error:null})},...database(()=>({data:{role:'admin',is_active:true,school_id:'school-a'},error:null}),[])};
   const route=mocked('app/api/admin/games/[id]/'+suffix,{
+    '@/lib/lms/auth':{LmsError},'@/lib/lms/game-skills':{},'@/lib/lms/game-skills-server':{},'@/lib/scorm/cleanup-worker':{},
     'next/server':{NextResponse:Response},'@/lib/supabase/server':{createClient:async()=>supabase},
     '@/lib/supabase/admin':{createAdminClient:()=>{privilegedAccess=true;throw new Error('Unauthorized privileged access');}},
     '@/lib/scorm/process-package':{processScormPackage:()=>{throw new Error('Unauthorized package processing');}},

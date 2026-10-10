@@ -1,4 +1,7 @@
 "use client";
+import { Notification, showToast } from "@/components/LmsToast";
+import ActionIcon from "@/components/ActionIcon";
+
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -113,6 +116,7 @@ export default function LoginPage() {
      * Super Admin deliberately has no school_id.
      */
 
+    showToast({ type: "success", message: "Signed in successfully." });
     if (isAdministrator) {
       router.push("/admin");
     } else {
@@ -188,12 +192,12 @@ export default function LoginPage() {
                   setRole("admin");
                   setError("");
                 }}
-                className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                className={("inline-flex items-center gap-2 " + (`inline-flex items-center justify-center rounded-lg px-4 py-3 text-sm font-semibold transition ${
                   role === "admin"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500"
-                }`}
-              >
+                    ? "bg-[#EEF0FF] text-[#4F46E5] shadow-sm"
+                    : "text-[#4F46E5]"
+                }`))}
+              ><ActionIcon name="school" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />
                 Administrator
               </button>
 
@@ -203,12 +207,12 @@ export default function LoginPage() {
                   setRole("student");
                   setError("");
                 }}
-                className={`rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                className={("inline-flex items-center gap-2 " + (`rounded-lg px-4 py-3 text-sm font-semibold transition ${
                   role === "student"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500"
-                }`}
-              >
+                    ? "bg-[#EEF0FF] text-[#4F46E5] shadow-sm"
+                    : "text-[#4F46E5]"
+                }`))}
+              ><ActionIcon name="users" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />
                 Student
               </button>
 
@@ -279,8 +283,8 @@ export default function LoginPage() {
                         !showPassword
                       )
                     }
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500"
-                  >
+                    className="inline-flex items-center gap-2 absolute right-4 top-1/2 inline-flex -translate-y-1/2 items-center rounded-lg bg-[#EEF0FF] px-2 py-1 text-sm font-medium text-[#4F46E5] hover:bg-[#E0E4FF]"
+                  ><ActionIcon name="view" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />
                     {showPassword
                       ? "Hide"
                       : "Show"}
@@ -291,17 +295,15 @@ export default function LoginPage() {
 
               {/* ERROR MESSAGE */}
               {error && (
-                <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
+                <Notification type="error" message={error} onClose={() => setError("")} />
               )}
 
               {/* LOGIN BUTTON */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
+                className="inline-flex items-center gap-2 inline-flex w-full items-center justify-center rounded-xl bg-[#6366F1] px-4 py-3 font-semibold text-white transition hover:bg-[#4F46E5] disabled:cursor-not-allowed disabled:opacity-60"
+              ><ActionIcon name="key" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />
                 {loading
                   ? "Signing in..."
                   : role === "admin"

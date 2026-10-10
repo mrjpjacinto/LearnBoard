@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/security/read-json";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -37,10 +38,7 @@ export async function POST(
   if (
     !profile ||
     !profile.is_active ||
-    ![
-      "super_admin",
-      "admin",
-    ].includes(profile.role)
+    profile.role !== "super_admin"
   ) {
     return NextResponse.json(
       {
@@ -61,7 +59,7 @@ export async function POST(
 
   try {
     body =
-      await request.json();
+      await readJson(request);
   } catch {
     return NextResponse.json(
       {

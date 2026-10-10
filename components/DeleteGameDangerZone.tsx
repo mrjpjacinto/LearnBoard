@@ -1,4 +1,5 @@
 "use client";
+import { showToast } from "./LmsToast";
 import { Notification } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 
@@ -101,6 +102,8 @@ export default function DeleteGameDangerZone({
         "/admin/games"
       );
 
+      showToast({ type: "success", message: "Game deleted." });
+
       router.refresh();
     } catch (deleteError) {
       setError(
@@ -124,7 +127,7 @@ export default function DeleteGameDangerZone({
       className={
         compact
           ? "inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-100 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          : "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          : "inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-red-200 bg-[#EEF0FF] px-4 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       }
     >
       <TrashIcon />
@@ -213,7 +216,7 @@ export default function DeleteGameDangerZone({
                       false
                     )
                   }
-                  className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition hover:bg-[#F2F4F7] hover:text-[#475467] disabled:opacity-50"
+                  className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition hover:bg-[#F2F4F7] hover:text-[#4F46E5] disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
                   aria-label="Close"
                 >
                   <CloseIcon />
@@ -246,7 +249,7 @@ export default function DeleteGameDangerZone({
                     false
                   )
                 }
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#CBD5E1] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 inline-flex h-10 items-center justify-center rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-4 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#CBD5E1] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
               ><ActionIcon name="close" />
                 Cancel
               </button>

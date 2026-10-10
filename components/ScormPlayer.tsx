@@ -1,5 +1,7 @@
 "use client";
-import { liveDetails } from "@/lib/scorm/live-details";
+import { Notification } from "./LmsToast";
+import { saveRuntime } from "@/lib/scorm/save-request";
+import { liveDetails, restoredQuestion, hasStarted, savedElapsed } from "@/lib/scorm/live-details";
 import ActionIcon from "@/components/ActionIcon";
 
 import { useEffect, useRef, useState } from "react";
@@ -9,11 +11,15 @@ export default function ScormPlayer({ attemptId, sessionToken, deadline, initial
   const iframe = useRef<HTMLIFrameElement>(null), raw = useRef(initialData), queue = useRef<Promise<void>>(Promise.resolve()), ending = useRef(false), dirty = useRef(false);
   const [status, setStatus] = useState("Loading game..."), [error, setError] = useState(""), [loaded, setLoaded] = useState(false), [remaining, setRemaining] = useState<number | null>(null), [busy, setBusy] = useState(false), [finished, setFinished] = useState(false);
   const startedAt = useRef<number | null>(null);
-  const [started,setStarted] = useState(false);
+  const elapsedBase = useRef(savedElapsed(initialData));
+  const [started,setStarted] = useState(()=>hasStarted(initialData));
+  const [currentQuestion,setCurrentQuestion] = useState<number | null>(()=>restoredQuestion(initialData));
   const [details,setDetails] = useState(()=>liveDetails(initialData));
-  const [elapsed,setElapsed] = useState(0);
+  const [elapsed,setElapsed] = useState(()=>savedElapsed(initialData));
   const { notification, setToast } = useToast(); const router = useRouter();
   useEffect(() => {
+    let checkpointed = false;
+    let retryFinish = false;
     const deadlineMs = deadline ? Date.parse(deadline) : null;
     function enqueue(data: Record<string,string>, finish: boolean) {
       dirty.current = true; raw.current = data;
@@ -22,33 +28,39 @@ export default function ScormPlayer({ attemptId, sessionToken, deadline, initial
       queue.current = queue.current.catch(() => {}).then(async () => {
         try {
           setStatus("Saving progress...");
-          const response = await fetch(`/api/student/runtime/${attemptId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_token: sessionToken, raw: data, finish }) });
-          const result = await response.json();
-          iframe.current?.contentWindow?.postMessage({ type: "learnboard-save-result", channel: attemptId, ok: response.ok }, "*");
-          if (!response.ok) throw new Error(result.error || "Progress could not be saved.");
+          const result = await saveRuntime(`/api/student/runtime/${attemptId}`, { session_token: sessionToken, raw: data, finish });
+          iframe.current?.contentWindow?.postMessage({ type: "learnboard-save-result", channel: attemptId, ok: true }, "*");
+          retryFinish = false;
           if(raw.current === data) dirty.current = false; setError(""); setStatus(result.completion === "completed" ? `Completed${result.score !== null ? ` · ${Math.round(result.score)}%` : ""} · ${result.success === "unknown" ? "Not assessed" : result.success}` : "Progress saved");
           if (finish) { setFinished(true); setToast({ type: "success", message: "Progress saved. You can return to My Learning." }); setLoaded(false); }
-        } catch(e) { ending.current = false; const message = (e as Error).message; setError(message); setStatus("Progress could not be saved"); setToast({ type: "error", message }); }
+        } catch(e) { retryFinish = finish; iframe.current?.contentWindow?.postMessage({ type: "learnboard-save-result", channel: attemptId, ok: false }, "*"); ending.current = false; const message = (e as Error).message; setError(message); setStatus("Progress could not be saved"); setToast({ type: "error", message }); }
       });
     }
     function receive(event: MessageEvent) {
       if (event.source !== iframe.current?.contentWindow || event.origin !== "null" || !event.data || event.data.channel !== attemptId) return;
       if (event.data.type === "learnboard-game-start" && startedAt.current === null) { startedAt.current = Date.now(); setStarted(true); }
+      if (event.data.type === "learnboard-question" && Number.isInteger(event.data.question) && event.data.question > 0) setCurrentQuestion(event.data.question);
       if (event.data.type === "learnboard-ready") { setLoaded(true); setStatus("Game ready"); }
-      if (event.data.type === "learnboard-snapshot" && event.data.raw && typeof event.data.raw === "object") { raw.current=event.data.raw; dirty.current=true; }
-      if (event.data.type === "learnboard-runtime" && typeof event.data.raw === "object" && event.data.raw && typeof event.data.finish === "boolean") enqueue(event.data.raw, event.data.finish);
+      if (event.data.type === "learnboard-snapshot" && event.data.raw && typeof event.data.raw === "object") { raw.current={...event.data.raw, "cmi.lumentrail.elapsed": raw.current["cmi.lumentrail.elapsed"] || String(elapsedBase.current)}; dirty.current=true; }
+      if (event.data.type === "learnboard-runtime" && typeof event.data.raw === "object" && event.data.raw && typeof event.data.finish === "boolean") enqueue({...event.data.raw, "cmi.lumentrail.elapsed": raw.current["cmi.lumentrail.elapsed"] || String(elapsedBase.current)}, event.data.finish);
     }
     function beacon() { if (!dirty.current || ending.current) return; const body = JSON.stringify({ session_token: sessionToken, raw: raw.current, finish: false }); if (body.length < 60000) navigator.sendBeacon(`/api/student/runtime/${attemptId}`, new Blob([body], { type: "application/json" })); }
     function beforeUnload(e: BeforeUnloadEvent) { if (dirty.current) { e.preventDefault(); beacon(); } }
-    const timer = window.setInterval(() => { setDetails(liveDetails(raw.current)); if (startedAt.current !== null && !ending.current) setElapsed(Math.floor((Date.now()-startedAt.current)/1000)); if (deadlineMs !== null) { const seconds = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000)); setRemaining(seconds); if (seconds === 0) { setLoaded(false); setError("Time limit reached. Return to My Learning."); } } }, 1000);
+    const timer = window.setInterval(() => { setDetails(liveDetails(raw.current)); if (startedAt.current !== null && !ending.current) { const seconds = elapsedBase.current + Math.floor((Date.now()-startedAt.current)/1000); setElapsed(seconds); raw.current = {...raw.current, "cmi.lumentrail.elapsed": String(seconds)}; dirty.current = true; } if (deadlineMs !== null) { const seconds = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000)); setRemaining(seconds); if (seconds > 0 && seconds <= 5 && !checkpointed && !ending.current) { checkpointed = true; enqueue(raw.current, false); } if (seconds === 0) { setLoaded(false); setError(dirty.current ? "Time limit reached. Some recent progress could not be saved. Return to My Learning." : "Time limit reached. Your last saved progress is retained. Return to My Learning."); } } }, 1000);
+    const retryTimer = window.setInterval(() => { if (dirty.current && !ending.current && (deadlineMs === null || deadlineMs > Date.now())) enqueue(raw.current, retryFinish); }, 15000);
     window.addEventListener("message", receive); window.addEventListener("pagehide", beacon); window.addEventListener("beforeunload", beforeUnload);
-    return () => { window.clearInterval(timer); window.removeEventListener("message", receive); window.removeEventListener("pagehide", beacon); window.removeEventListener("beforeunload", beforeUnload); };
+    return () => { window.clearInterval(timer); window.clearInterval(retryTimer); window.removeEventListener("message", receive); window.removeEventListener("pagehide", beacon); window.removeEventListener("beforeunload", beforeUnload); };
   }, [attemptId, sessionToken, deadline, setToast]);
   async function saveAndExit() {
     if (busy) return;
     if (deadline && Date.parse(deadline) <= Date.now()) { router.push("/student"); router.refresh(); return; }
     setBusy(true);
-    try { await queue.current.catch(() => {}); if (!ending.current) { const response = await fetch(`/api/student/runtime/${attemptId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_token: sessionToken, raw: raw.current, finish: true }) }); const result = await response.json(); if (!response.ok) throw new Error(result.error || "Unable to save progress."); } router.push("/student"); router.refresh(); }
+    if (startedAt.current !== null) {
+      const seconds = elapsedBase.current + Math.floor((Date.now()-startedAt.current)/1000);
+      elapsedBase.current = seconds; startedAt.current = null; setElapsed(seconds);
+      raw.current = {...raw.current, "cmi.lumentrail.elapsed": String(seconds)};
+    }
+    try { await queue.current.catch(() => {}); if (!ending.current) { await saveRuntime(`/api/student/runtime/${attemptId}`, { session_token: sessionToken, raw: raw.current, finish: true }); } router.push("/student"); router.refresh(); }
     catch(e) { setError((e as Error).message); setToast({ type: "error", message: (e as Error).message }); }
     finally { setBusy(false); }
   }
@@ -63,9 +75,9 @@ export default function ScormPlayer({ attemptId, sessionToken, deadline, initial
     </div>
     <aside className="w-full shrink-0 rounded-2xl border border-white/10 bg-[#1D2939] p-4 text-white md:max-h-[calc(100dvh-1.5rem)] md:w-[clamp(13rem,20vw,24rem)] md:self-center min-[2200px]:p-6">
       <h2 className="mb-3 pr-8 text-lg font-semibold min-[2200px]:text-xl">Game Details</h2>
-      <dl className="grid grid-cols-2 gap-3 md:grid-cols-1">{[["Question",started ? details.question : 0],["Correct answers",scoreVisible ? details.correct : "Hidden"],["Incorrect answers",scoreVisible ? details.incorrect : "Hidden"],["Time elapsed",Math.floor(elapsed/60)+":"+String(elapsed%60).padStart(2,"0")],["Accuracy",scoreVisible ? details.accuracy===null ? "0%" : details.accuracy+"%" : "Hidden"],["Average answer time",details.averageSeconds===null ? "0 sec" : details.averageSeconds+" sec"]].map(([label,value])=><div key={label} className="min-w-0 border-b border-white/10 pb-2"><dt className="text-xs text-[#CBD5E1] min-[2200px]:text-sm">{label}</dt><dd className="mt-1 break-words text-lg font-semibold min-[2200px]:text-xl min-[2800px]:text-2xl">{value}</dd></div>)}</dl>
+      <dl className="grid grid-cols-2 gap-3 md:grid-cols-1">{[["Question",started ? currentQuestion ?? details.question : 0],["Correct answers",scoreVisible ? details.correct : "Hidden"],["Incorrect answers",scoreVisible ? details.incorrect : "Hidden"],["Time elapsed",Math.floor(elapsed/60)+":"+String(elapsed%60).padStart(2,"0")],["Accuracy",scoreVisible ? details.accuracy===null ? "0%" : details.accuracy+"%" : "Hidden"],["Average answer time",details.averageSeconds===null ? "0 sec" : details.averageSeconds+" sec"]].map(([label,value])=><div key={label} className="min-w-0 border-b border-white/10 pb-2"><dt className="text-xs text-[#CBD5E1] min-[2200px]:text-sm">{label}</dt><dd className="mt-1 break-words text-lg font-semibold min-[2200px]:text-xl min-[2800px]:text-2xl">{value}</dd></div>)}</dl>
       <p className="mt-3 text-xs leading-4 text-[#CBD5E1]">Question details update when the game reports quiz interactions.</p>
     </aside>
-    {error && <p role="alert" className="absolute inset-x-4 bottom-4 z-40 mx-auto max-w-xl rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+    {error && <Notification type="error" message={error} />}
   </div>;
 }

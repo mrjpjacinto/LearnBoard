@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/security/read-json";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -162,7 +163,7 @@ export async function PATCH(
     }
 
     const body =
-      await request.json();
+      await readJson(request);
 
     const fullName =
       typeof body.fullName ===
@@ -645,7 +646,7 @@ export async function PUT(
     }
 
     const body =
-      await request.json();
+      await readJson(request);
 
     const password =
       typeof body.password ===

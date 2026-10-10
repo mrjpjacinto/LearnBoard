@@ -1,3 +1,6 @@
+import { LmsError, apiError } from "@/lib/lms/auth";
+import { parseSkillIds } from "@/lib/lms/game-skills";
+import { validateGameSkills, saveGameSkills } from "@/lib/lms/game-skills-server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -136,15 +139,13 @@ export async function PATCH(
         "description"
       );
 
-    const subjectValue =
-      formData.get(
-        "subject_id"
-      );
+    let skillIds:string[];
+    try {skillIds=parseSkillIds(formData,"skill_id");}catch{throw new LmsError("Choose at least one valid skill.");}
+    const skillId = skillIds[0];
+    const classifications = await validateGameSkills(admin,skillIds);
 
-    const orientationValue =
-      formData.get(
-        "orientation_mode"
-      );
+
+
 
     const imageValue =
       formData.get("image");
@@ -161,17 +162,10 @@ export async function PATCH(
         ? descriptionValue.trim()
         : "";
 
-    const subjectId =
-      typeof subjectValue ===
-      "string"
-        ? subjectValue.trim()
-        : "";
+    const subjectId = classifications.primary.subject_id;
 
-    const orientationMode =
-      typeof orientationValue ===
-      "string"
-        ? orientationValue.trim()
-        : "";
+
+    const orientationMode = "landscape";
 
     /*
      * Validate only the fields this
@@ -203,22 +197,7 @@ export async function PATCH(
       );
     }
 
-    if (
-      orientationMode !==
-        "landscape" &&
-      orientationMode !==
-        "portrait"
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Choose a valid orientation mode.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+
 
     /*
      * Verify that the selected subject
@@ -340,7 +319,7 @@ export async function PATCH(
         | string
         | null;
       subject_id: string;
-      skill_id?: null;
+      skill_id: string;
       orientation_mode: string;
       image_path?: string;
       updated_at: string;
@@ -349,13 +328,14 @@ export async function PATCH(
       description:
         description || null,
       subject_id: subjectId,
+      skill_id: skillId,
       orientation_mode:
         orientationMode,
       updated_at:
         new Date().toISOString(),
     };
 
-    if (existingGame.subject_id !== subjectId) updateValues.skill_id = null;
+
 
     if (newImagePath) {
       updateValues.image_path =
@@ -365,24 +345,7 @@ export async function PATCH(
     const {
       data: updatedGame,
       error: updateError,
-    } = await admin
-      .from("games")
-      .update(updateValues)
-      .eq("id", id)
-      .select(
-        `
-          id,
-          name,
-          description,
-          subject_id,
-          orientation_mode,
-          image_path,
-          status,
-          created_at,
-          updated_at
-        `
-      )
-      .maybeSingle();
+    } = await saveGameSkills(admin,id,skillIds,updateValues,classifications.enabled);
 
     if (updateError) {
       /*
@@ -481,6 +444,7 @@ export async function PATCH(
       game: updatedGame,
     });
   } catch (error) {
+    if(error instanceof LmsError)return apiError(error);
     console.error(
       "Unexpected game update error:",
       error

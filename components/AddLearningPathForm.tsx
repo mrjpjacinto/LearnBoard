@@ -1,4 +1,5 @@
 "use client";
+import { showToast } from "./LmsToast";
 import { Notification } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 import { addButtonClass } from "@/lib/ui/buttons";
@@ -196,11 +197,7 @@ export default function AddLearningPathForm({
 
       created = true;
 
-      setToast({
-        type: "success",
-        message:
-          "Learning Path created successfully.",
-      });
+      showToast({ type: "success", message: "Learning Path created successfully." });
 
       if (pathId) {
         router.push(
@@ -521,12 +518,12 @@ export default function AddLearningPathForm({
         <div className="flex flex-col-reverse gap-3 border-t border-[#E8ECF4] bg-[#FBFCFE] px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-7">
           <Link
             href="/admin/paths"
-            className={`inline-flex h-11 items-center justify-center rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] ${
+            className={("inline-flex items-center gap-2 " + ((`inline-flex h-11 items-center justify-center rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-4 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#F8FAFC] ${
               isSubmitting
                 ? "pointer-events-none opacity-50"
                 : ""
-            }`}
-          >
+            }`) + " !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"))}
+          ><ActionIcon name="close" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />
             Cancel
           </Link>
 
@@ -576,7 +573,7 @@ function StatusOption({
       className={`flex items-start gap-3 rounded-xl border p-4 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
         selected
           ? "border-[#818CF8] bg-[#F5F5FF] ring-2 ring-[#EEF0FF]"
-          : "border-[#D8DEEA] bg-white hover:border-[#C7CCF8] hover:bg-[#FBFBFF]"
+          : "border-[#D8DEEA] bg-[#EEF0FF] hover:border-[#C7CCF8] hover:bg-[#FBFBFF]"
       }`}
     >
       <span

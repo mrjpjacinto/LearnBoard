@@ -1,4 +1,5 @@
 "use client";
+import { showToast } from "./LmsToast";
 import { Notification } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 
@@ -197,6 +198,8 @@ export default function SchoolsTable({
       setSelectedSchool(
         null
       );
+
+      showToast({ type: "success", message: "School updated." });
 
       router.refresh();
     } catch {
@@ -440,7 +443,7 @@ export default function SchoolsTable({
                             school
                           )
                         }
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#D8DEEA] bg-[#EEF0FF] px-3 py-2 text-xs font-semibold text-[#4F46E5] transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
                       ><ActionIcon name="next" />
                         Manage
                       </button>
@@ -501,7 +504,7 @@ export default function SchoolsTable({
       {/* Manage School Modal */}
       {selectedSchool && (
 
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onClick={event => { if (event.target === event.currentTarget) { closeManage(); } }}>
 
           <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white text-slate-900 shadow-xl">
 
@@ -527,7 +530,7 @@ export default function SchoolsTable({
                 }
                 disabled={saving}
                 aria-label="Close"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#4F46E5] transition hover:bg-slate-100 disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -539,8 +542,8 @@ export default function SchoolsTable({
                   className="h-5 w-5"
                   aria-hidden="true"
                 >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
+                  <path stroke="#DC2626" d="M18 6 6 18" />
+                  <path stroke="#DC2626" d="m6 6 12 12" />
                 </svg>
               </button>
 
@@ -650,7 +653,7 @@ export default function SchoolsTable({
                   closeManage
                 }
                 disabled={saving}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-white px-5 py-2.5 text-sm font-semibold text-[#475467] transition hover:bg-slate-50 disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-5 py-2.5 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#E0E4FF] disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
               ><ActionIcon name="close" />
                 Cancel
               </button>

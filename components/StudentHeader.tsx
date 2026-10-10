@@ -1,4 +1,5 @@
 "use client";
+import OutsideDetails from "./OutsideDetails";
 import { profileInitials } from "@/lib/lms/initials";
 import BrandIcon from "./BrandIcon";
 import Link from "next/link";
@@ -18,7 +19,7 @@ export default function StudentHeader({ name, avatar }: { name: string; avatar?:
       <Link href="/student" className="order-1 flex shrink-0 items-center gap-3" aria-label="LumenTrail My Learning">
         <BrandIcon /><span className="text-lg font-bold">LumenTrail<span className="block text-xs font-normal text-[#667085]">Path to Growth</span></span>
       </Link>
-      <details className="relative order-2 justify-self-end shrink-0 md:order-3">
+      <OutsideDetails className="relative order-2 justify-self-end shrink-0 md:order-3">
         <summary aria-label="Open profile menu" className="flex h-[54px] w-[54px] p-[5px] cursor-pointer list-none items-center justify-center overflow-hidden rounded-full border border-[#E3E8F2] bg-[#F4F5FF] text-[#6366F1] transition hover:border-[#C7D2FE] hover:bg-[#EEF0FF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#6366F1] [&::-webkit-details-marker]:hidden">
           {avatar ? <img src={avatar} alt="Your profile" className="h-11 w-11 rounded-full object-cover" /> : <span className="text-sm font-semibold">{profileInitials(name)}</span>}        </summary>
         <div className="absolute right-0 z-50 mt-3 w-64 max-w-[calc(100vw-3rem)] overflow-hidden rounded-xl border border-[#E3E8F2] bg-white text-[#172033] shadow-[0_8px_30px_rgba(16,24,40,0.12)]">
@@ -27,11 +28,11 @@ export default function StudentHeader({ name, avatar }: { name: string; avatar?:
             <div className="min-w-0"><p className="break-words text-sm font-semibold">{name}</p><p className="mt-0.5 text-xs text-[#667085]">Student account</p></div>
           </div>
           <div className="space-y-1 p-2">
-            <Link href="/student/settings" onClick={e => e.currentTarget.closest("details")?.removeAttribute("open")} className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#475467] transition hover:bg-[#F4F7FB] hover:text-[#172033]"><ActionIcon name="edit" />Edit Profile</Link>
+            <Link href="/student/settings" onClick={e => e.currentTarget.closest("details")?.removeAttribute("open")} className="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[#4F46E5] transition hover:bg-[#F4F7FB] hover:text-[#172033]"><ActionIcon name="edit" />Edit Profile</Link>
             <LogoutButton menu />
           </div>
         </div>
-      </details>
+      </OutsideDetails>
     </div>
   </header>;
 }

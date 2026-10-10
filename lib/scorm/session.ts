@@ -20,7 +20,7 @@ export async function learningSession(id: string, contentToken?: string) {
   const { data: attempt, error } = await admin.from("attempts").select(`${attemptColumns},launch_config`).eq("id", uuid(id)).eq("student_id", profile.id).maybeSingle();
   checkDb(error);
   if (!attempt || attempt.status !== "in_progress" || !attempt.assignment_id || !attempt.package_id) throw new LmsError("This learning session is no longer active.", 403);
-  const config = attempt.launch_config as { deadline?: string | null; passing_score?: number; session_token?: string; scorm_version?: string; allow_resume?: boolean; session_base?: number; session_started_at?: string };
+  const config = attempt.launch_config as { deadline?: string | null; passing_score?: number; session_token?: string; scorm_version?: string; allow_resume?: boolean; player_opened_token?: string; session_base?: number; session_started_at?: string; path_removal_finish?: boolean; path_removal_until?: string | null };
   if (!config.session_token || !config.scorm_version) throw new LmsError("Launch this game from My Learning.", 403);
   if (config.deadline && Date.parse(config.deadline) <= Date.now()) throw new LmsError("Time limit reached. Return to My Learning.", 403);
   const { data: assignmentData, error: assignmentError } = await admin.from("assignments").select("*").eq("id", attempt.assignment_id).eq("student_id", profile.id).eq("school_id", profile.school_id!).maybeSingle();
@@ -38,6 +38,7 @@ export async function learningSession(id: string, contentToken?: string) {
     if (!group.data || !membership.data) throw new LmsError("You are no longer assigned to this class.", 403);
     schedule = source;
   }
+  if (!assignment.group_assignment_id && assignment.status === "cancelled" && config.path_removal_finish === true) schedule = { ...assignment, status: "active", available_from: null, available_until: config.path_removal_until || null };
   if (availability(schedule) !== "Available") throw new LmsError("Assignment is not currently available.", 403);
   if (assignment.board_id) {
     const { data: board, error: boardError } = await admin.from("learning_boards").select("id").eq("id", assignment.board_id).eq("school_id", profile.school_id!).eq("status", "active").maybeSingle();

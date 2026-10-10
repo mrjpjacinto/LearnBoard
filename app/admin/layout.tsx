@@ -1,6 +1,6 @@
 import { personalDetails } from "@/lib/lms/personal-details";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { pageAuth } from "@/lib/lms/auth";
+
 import AdminSidebar from "@/components/AdminSidebar";
 
 export default async function AdminLayout({
@@ -8,37 +8,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(
-      "full_name, email, role, is_active, school_id"
-    )
-    .eq("id", user.id)
-    .single();
-
-  const isSuperAdmin =
-    profile?.role === "super_admin";
-
-  const isSchoolAdmin =
-    profile?.role === "admin";
-
-  if (
-    !profile ||
-    !profile.is_active ||
-    (!isSuperAdmin && !isSchoolAdmin)
-  ) {
-    redirect("/");
-  }
+  const { profile, user } = await pageAuth();
 
   return (
     <div className="admin-portal min-h-screen bg-[#F4F7FB] text-[#172033]">
@@ -55,7 +25,7 @@ export default async function AdminLayout({
           }
         />
 
-        <main className="min-w-0 flex-1 bg-[#F4F7FB]">
+        <main className="ml-[64px] min-w-0 flex-1 bg-[#F4F7FB] lg:ml-[260px]">
           {children}
         </main>
 

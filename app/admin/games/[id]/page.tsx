@@ -1,3 +1,5 @@
+import { loadGameClassifications } from "@/lib/lms/game-skills-server";
+import ActionIcon from "@/components/ActionIcon";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -7,7 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import GameEditForm from "@/components/GameEditForm";
-import GamePublishing from "@/components/GamePublishing";
+
 import ScormPackageActions from "@/components/ScormPackageActions";
 
 type PageProps = {
@@ -21,6 +23,7 @@ type GameRow = {
   name: string;
   description: string | null;
   subject_id: string | null;
+  skill_id: string | null;
   orientation_mode: string;
   image_path: string | null;
   status: string;
@@ -117,6 +120,7 @@ export default async function GameManagePage({
         name,
         description,
         subject_id,
+        skill_id,
         orientation_mode,
         image_path,
         status,
@@ -134,7 +138,7 @@ export default async function GameManagePage({
     notFound();
   }
 
-  const game =
+  const rawGame =
     gameData as GameRow;
 
   const {
@@ -155,6 +159,9 @@ export default async function GameManagePage({
       ascending: true,
     });
 
+  const skillResult = await admin.from("skills").select("id,name,subject_id").eq("is_active",true).order("name");
+  const [game] = await loadGameClassifications(admin,[rawGame!]);
+  const skills = skillResult.data || [];
   const subjects =
     (subjectData ||
       []) as SubjectRow[];
@@ -320,13 +327,7 @@ export default async function GameManagePage({
               </p>
             </div>
 
-            {isSuperAdmin && (
-              <GameStatus
-                status={
-                  game.status
-                }
-              />
-            )}
+
           </div>
         </div>
 
@@ -338,7 +339,8 @@ export default async function GameManagePage({
           }
         >
           <div>
-            {isSuperAdmin && <div className="mb-4"><GamePublishing gameId={game.id} status={game.status} /></div>}
+            <div className="mb-4 flex items-center gap-3 overflow-x-auto"><Link href={`/admin/games/${game.id}/preview`} className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#6366F1] px-4 py-2 font-semibold text-white hover:bg-[#4F46E5]"><ActionIcon name="launch" />Preview Game</Link>
+            </div>
             {isSuperAdmin ? (
             <GameEditForm
               game={{
@@ -347,13 +349,16 @@ export default async function GameManagePage({
                 description:
                   game.description,
                 subject_id:
-                  game.subject_id,
+                  skills.find(skill=>skill.id===game.skill_id)?.subject_id || game.subject_id,
+                skill_id: game.skill_id,
+                skill_ids: game.skill_ids,
                 orientation_mode:
                   game.orientation_mode,
                 image_path:
                   game.image_path,
               }}
               subjects={subjects}
+              skills={skills}
               isSuperAdmin={
                 isSuperAdmin
               }
@@ -366,8 +371,7 @@ export default async function GameManagePage({
                 <dl className="mt-layout space-y-4">
                   <DetailRow label="Name" value={game.name} />
                   <DetailRow label="Description" value={game.description || "No description added."} />
-                  <DetailRow label="Subject" value={subjects.find(s => s.id === game.subject_id)?.name || "Uncategorized"} />
-                  <DetailRow label="Orientation" value={game.orientation_mode || "landscape"} />
+                  <DetailRow label="Subjects & Skills" value={game.skill_ids.map(id=>{const skill=skills.find(s=>s.id===id);return skill?`${subjects.find(s=>s.id===skill.subject_id)?.name || ""} / ${skill.name}`:"";}).filter(Boolean).join(", ") || "Unassigned"} />
                 </dl>
               </section>
             )}
@@ -646,8 +650,8 @@ function ReadinessItem({
             className="h-4 w-4"
             aria-hidden="true"
           >
-            <path d="M6 6l12 12" />
-            <path d="M18 6 6 18" />
+            <path stroke="#DC2626" d="M6 6l12 12" />
+            <path stroke="#DC2626" d="M18 6 6 18" />
           </svg>
         ) : (
           <svg
@@ -676,27 +680,6 @@ function ReadinessItem({
         {label}
       </span>
     </div>
-  );
-}
-
-function GameStatus({
-  status,
-}: {
-  status: string;
-}) {
-  const published =
-    status === "published";
-
-  return (
-    <span
-      className={`inline-flex self-start rounded-full px-3 py-1.5 text-xs font-semibold ${
-        published
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-slate-100 text-slate-600"
-      }`}
-    >
-      {formatStatus(status)}
-    </span>
   );
 }
 

@@ -5,7 +5,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const { admin }=await authorize(["super_admin"]), {id}=await params, body=await jsonBody(request);
     uuid(id,"Game"); if(body.status!=="published"&&body.status!=="draft")throw new LmsError("Choose a valid game status.");
     if(body.status==="published") {
-      const {data:game,error}=await admin.from("games").select("package_path,launch_file").eq("id",id).maybeSingle();checkDb(error);if(!game)throw new LmsError("Game not found.",404);
+      const {data:game,error}=await admin.from("games").select("package_path,launch_file,skill_id").eq("id",id).maybeSingle();checkDb(error);if(!game)throw new LmsError("Game not found.",404);
+      if (!game.skill_id) throw new LmsError("Assign a skill before publishing this game.",409);
+      const skill = await admin.from("skills").select("subject_id,is_active").eq("id",game.skill_id).maybeSingle();
+      checkDb(skill.error);
+      if (!skill.data?.is_active || !skill.data.subject_id) throw new LmsError("An active skill is required before publishing.",409);
+      const subject = await admin.from("subjects").select("id,is_active").eq("id",skill.data.subject_id).maybeSingle();
+      checkDb(subject.error);
+      if (!subject.data?.is_active) throw new LmsError("An active subject is required before publishing.",409);
       // Older uploads can have ready package metadata without game pointers.
       // Restore only an unambiguous package on this explicit Publish action.
       if (!game.package_path && !game.launch_file) {

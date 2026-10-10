@@ -1,3 +1,4 @@
+import { queueReplacementCleanup } from "@/lib/scorm/cleanup-worker";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -36,6 +37,7 @@ export async function POST(
     | string
     | null = null;
 
+  let activated = false;
   try {
     const { id } =
       await context.params;
@@ -415,27 +417,8 @@ export async function POST(
     if (
       !processingResult.success
     ) {
-      const {
-        error: restoreError,
-      } = await admin
-        .from("games")
-        .update({
-          scorm_version:
-            game.scorm_version,
-          launch_file:
-            game.launch_file,
-          package_path:
-            game.package_path,
-        })
-        .eq("id", id);
-
-      if (restoreError) {
-        console.error(
-          "Unable to restore previous SCORM pointers:",
-          restoreError
-        );
-      }
-
+      // Processing attaches game pointers only after successful validation.
+      // Never overwrite a concurrently activated replacement on failure.
       const failedExtractionPath =
         `${id}/packages/${confirmedPackageId}/extracted`;
 
@@ -496,6 +479,7 @@ export async function POST(
       );
     }
 
+    activated = true;
     const newExtractionPath =
       processingResult.extractionPath ||
       `${id}/packages/${confirmedPackageId}/extracted`;
@@ -537,9 +521,11 @@ export async function POST(
       );
     }
 
+    const cleanup = await queueReplacementCleanup(admin,id).catch(()=>({status:"setup_required",automatic_deletion_enabled:false}));
     return NextResponse.json(
       {
         success: true,
+        cleanup,
         updated_at: updatedAt,
         package: {
           id:
@@ -579,9 +565,7 @@ export async function POST(
       const admin =
         createAdminClient();
 
-      if (
-        replacementPackageId
-      ) {
+      if (!activated && replacementPackageId) {
         const { id } =
           await context.params;
 
@@ -599,7 +583,7 @@ export async function POST(
           );
       }
 
-      if (newStoragePath) {
+      if (!activated && newStoragePath) {
         await admin.storage
           .from("scorm-packages")
           .remove([

@@ -1,4 +1,6 @@
 "use client";
+import GameSkillsPicker from "./GameSkillsPicker";
+import { gameSkillIds } from "@/lib/lms/game-skills";
 import { Notification } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 
@@ -24,6 +26,8 @@ type Game = {
   name: string;
   description: string | null;
   subject_id: string | null;
+  skill_id: string | null;
+  skill_ids?: string[];
   orientation_mode: string;
   image_path: string | null;
 };
@@ -31,6 +35,7 @@ type Game = {
 type GameEditFormProps = {
   game: Game;
   subjects: Subject[];
+  skills: {id:string;name:string;subject_id:string}[];
   isSuperAdmin?: boolean;
 };
 
@@ -46,9 +51,13 @@ const ALLOWED_IMAGE_TYPES = [
 export default function GameEditForm({
   game,
   subjects,
+  skills,
   isSuperAdmin = false,
 }: GameEditFormProps) {
   const router = useRouter();
+  const [skillIds,setSkillIds] = useState<string[]>(gameSkillIds(game));
+  const skillId=skillIds[0] || "";
+  const subjectId=skills.find(skill=>skill.id===skillId)?.subject_id || "";
 
   const [name, setName] =
     useState(game.name);
@@ -60,20 +69,9 @@ export default function GameEditForm({
     game.description || ""
   );
 
-  const [
-    subjectId,
-    setSubjectId,
-  ] = useState(
-    game.subject_id || ""
-  );
 
-  const [
-    orientationMode,
-    setOrientationMode,
-  ] = useState(
-    game.orientation_mode ||
-      "landscape"
-  );
+
+  const orientationMode = "landscape";
 
   const [image, setImage] =
     useState<File | null>(null);
@@ -273,6 +271,7 @@ export default function GameEditForm({
       return;
     }
 
+    if (!skillId) { setError("Please select a skill."); return; }
     if (!subjectId) {
       setError(
         "Please select a subject."
@@ -280,17 +279,6 @@ export default function GameEditForm({
       return;
     }
 
-    if (
-      orientationMode !==
-        "landscape" &&
-      orientationMode !==
-        "portrait"
-    ) {
-      setError(
-        "Please select a valid orientation mode."
-      );
-      return;
-    }
 
     setSaving(true);
 
@@ -312,6 +300,7 @@ export default function GameEditForm({
        * These names intentionally
        * match the PATCH API.
        */
+      skillIds.forEach(id=>formData.append("skill_ids",id));
       formData.append(
         "subject_id",
         subjectId
@@ -409,6 +398,78 @@ export default function GameEditForm({
       <div className="rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
         <div className="border-b border-[#E8ECF4] px-6 py-5">
           <h2 className="text-lg font-bold text-[#172033]">
+            Game Image
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-[#667085]">
+            Change the artwork shown
+            for this game.
+          </p>
+        </div>
+
+        <div className="p-6">
+          <div className="grid gap-layout sm:grid-cols-[200px_minmax(0,1fr)] sm:items-center">
+            <div className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-[#F8FAFC]">
+              <div className="h-[150px]">
+                {displayedImage ? (
+                  <img
+                    src={
+                      displayedImage
+                    }
+                    alt={`${name} artwork`}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-[#98A2B3]">
+                    No game image
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="game-image"
+                className="mb-2 block text-sm font-semibold text-[#344054]"
+              >
+                Replace Game Image
+              </label>
+
+              <input
+                ref={fileInputRef}
+                id="game-image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={saving}
+                onChange={
+                  handleImageChange
+                }
+                className="block w-full rounded-xl border border-[#D8DEEA] bg-white p-3 text-sm text-[#475467] file:mr-4 file:rounded-lg file:border-0 file:bg-[#EEF0FF] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#4F46E5] hover:file:bg-[#E4E7FF] disabled:opacity-60"
+              />
+
+              <p className="mt-2 text-xs leading-5 text-[#98A2B3]">
+                JPG, PNG or WebP.
+                Maximum 10 MB.
+                Recommended image ratio:
+                4:3 landscape. Leave this
+                unchanged to keep the
+                current image.
+              </p>
+
+              {image && (
+                <p className="mt-3 text-sm font-semibold text-[#344054]">
+                  Selected:{" "}
+                  {image.name}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
+        <div className="border-b border-[#E8ECF4] px-6 py-5">
+          <h2 className="text-lg font-bold text-[#172033]">
             Game Information
           </h2>
 
@@ -484,166 +545,8 @@ export default function GameEditForm({
             />
           </div>
 
-          <div className="grid gap-layout md:grid-cols-2">
-            <div>
-              <label
-                htmlFor="game-subject"
-                className="mb-2 block text-sm font-semibold text-[#344054]"
-              >
-                Subject
-                <span className="ml-1 text-red-500">
-                  *
-                </span>
-              </label>
+          <GameSkillsPicker subjects={subjects} skills={skills} value={skillIds} onChange={ids=>{setSkillIds(ids);setError("");setSuccess("");}} disabled={saving} />
 
-              <select
-                id="game-subject"
-                value={subjectId}
-                disabled={saving}
-                onChange={(
-                  event
-                ) => {
-                  setSubjectId(
-                    event.target.value
-                  );
-                  setError("");
-                  setSuccess("");
-                }}
-                className="h-12 w-full rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm text-[#172033] outline-none transition focus:border-[#818CF8] focus:ring-4 focus:ring-[#6366F1]/10 disabled:bg-[#F8FAFC]"
-              >
-                <option value="">
-                  Select a subject
-                </option>
-
-                {subjects.map(
-                  (subject) => (
-                    <option
-                      key={
-                        subject.id
-                      }
-                      value={
-                        subject.id
-                      }
-                    >
-                      {
-                        subject.name
-                      }
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="orientation-mode"
-                className="mb-2 block text-sm font-semibold text-[#344054]"
-              >
-                Orientation Mode
-                <span className="ml-1 text-red-500">
-                  *
-                </span>
-              </label>
-
-              <select
-                id="orientation-mode"
-                value={
-                  orientationMode
-                }
-                disabled={saving}
-                onChange={(
-                  event
-                ) => {
-                  setOrientationMode(
-                    event.target.value
-                  );
-                  setError("");
-                  setSuccess("");
-                }}
-                className="h-12 w-full rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm text-[#172033] outline-none transition focus:border-[#818CF8] focus:ring-4 focus:ring-[#6366F1]/10 disabled:bg-[#F8FAFC]"
-              >
-                <option value="landscape">
-                  Landscape
-                </option>
-
-                <option value="portrait">
-                  Portrait
-                </option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-[#E3E8F2] bg-white shadow-sm">
-        <div className="border-b border-[#E8ECF4] px-6 py-5">
-          <h2 className="text-lg font-bold text-[#172033]">
-            Game Image
-          </h2>
-
-          <p className="mt-1 text-sm leading-6 text-[#667085]">
-            Change the artwork shown
-            for this game.
-          </p>
-        </div>
-
-        <div className="p-6">
-          <div className="grid gap-layout lg:grid-cols-[300px_minmax(0,1fr)] lg:items-center">
-            <div className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-[#F8FAFC]">
-              <div className="aspect-[4/3]">
-                {displayedImage ? (
-                  <img
-                    src={
-                      displayedImage
-                    }
-                    alt={`${name} artwork`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-[#98A2B3]">
-                    No game image
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="game-image"
-                className="mb-2 block text-sm font-semibold text-[#344054]"
-              >
-                Replace Game Image
-              </label>
-
-              <input
-                ref={fileInputRef}
-                id="game-image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                disabled={saving}
-                onChange={
-                  handleImageChange
-                }
-                className="block w-full rounded-xl border border-[#D8DEEA] bg-white p-3 text-sm text-[#475467] file:mr-4 file:rounded-lg file:border-0 file:bg-[#EEF0FF] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#4F46E5] hover:file:bg-[#E4E7FF] disabled:opacity-60"
-              />
-
-              <p className="mt-2 text-xs leading-5 text-[#98A2B3]">
-                JPG, PNG or WebP.
-                Maximum 10 MB.
-                Recommended image ratio:
-                4:3 landscape. Leave this
-                unchanged to keep the
-                current image.
-              </p>
-
-              {image && (
-                <p className="mt-3 text-sm font-semibold text-[#344054]">
-                  Selected:{" "}
-                  {image.name}
-                </p>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -659,7 +562,7 @@ export default function GameEditForm({
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-[#6366F1] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#818CF8] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 inline-flex h-12 items-center justify-center rounded-xl bg-[#6366F1] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-[#818CF8] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         ><ActionIcon name="save" />
           {saving
             ? "Saving..."

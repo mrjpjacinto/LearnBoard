@@ -1,4 +1,6 @@
 "use client";
+import { gameSkillIds, hasGameSkill, hasGameSubject } from "@/lib/lms/game-skills";
+import OutsideDetails from "./OutsideDetails";
 import ActionIcon from "@/components/ActionIcon";
 
 
@@ -23,6 +25,8 @@ type GameRow = {
   image_path: string | null;
   subject_id: string | null;
   skill_id: string | null;
+  skill_ids?: string[];
+  subject_ids?: string[];
   created_at: string;
   updated_at: string;
 };
@@ -73,7 +77,7 @@ export default function GamesLibrary({
   const [orderMessage, setOrderMessage] = useState("");
   const orderedGames = useMemo(() => {
     const ranks = new Map((customIds || savedIds).map((id, index) => [id, index]));
-    return [...games].sort((a, b) => sort === "az" ? (direction === "ascending" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)) : sort === "date" ? (direction === "ascending" ? Date.parse(a.created_at) - Date.parse(b.created_at) : Date.parse(b.created_at) - Date.parse(a.created_at)) : (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity) || Date.parse(b.created_at) - Date.parse(a.created_at));
+    return [...games].sort((a, b) => Number(!gameSkillIds(b).length) - Number(!gameSkillIds(a).length) || (sort === "az" ? (direction === "ascending" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)) : sort === "date" ? (direction === "ascending" ? Date.parse(a.created_at) - Date.parse(b.created_at) : Date.parse(b.created_at) - Date.parse(a.created_at)) : (ranks.get(a.id) ?? Infinity) - (ranks.get(b.id) ?? Infinity) || Date.parse(b.created_at) - Date.parse(a.created_at)));
   }, [games, sort, direction, customIds, savedIds]);
   function moveGame(from: string, to: string) {
     const ids = reorderGames(orderedGames.map(g => g.id), from, to);
@@ -131,7 +135,10 @@ export default function GamesLibrary({
                 game.skill_id
             );
 
+          const assignedSkills = skills.filter(skill=>hasGameSkill(game,skill.id));
+          const classificationMatches = assignedSkills.some(skill=>(skill.name+" "+(subjects.find(subject=>subject.id===skill.subject_id)?.name || "")).toLowerCase().includes(query));
           const matchesSearch =
+            classificationMatches ||
             !query ||
             game.name
               .toLowerCase()
@@ -158,14 +165,12 @@ export default function GamesLibrary({
           const matchesSubject =
             subjectFilter ===
               "all" ||
-            game.subject_id ===
-              subjectFilter;
+            hasGameSubject(game,subjectFilter);
 
           const matchesSkill =
             skillFilter ===
               "all" ||
-            game.skill_id ===
-              skillFilter;
+            hasGameSkill(game,skillFilter);
 
           return (
             matchesSearch &&
@@ -277,14 +282,14 @@ export default function GamesLibrary({
               )
             )}
           </select>
-          <details className="relative min-w-40">
+          <OutsideDetails className="relative min-w-40">
             <summary className="flex h-12 cursor-pointer list-none items-center justify-between gap-4 rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-medium text-[#475467] [&::-webkit-details-marker]:hidden">{sort === "custom" ? "Custom" : sort === "date" ? "Date Uploaded" : "A\u2013Z"}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="h-4 w-4"><path d="m6 9 6 6 6-6" /></svg></summary>
             <div className="absolute right-0 z-30 mt-2 w-52 rounded-xl border border-[#D8DEEA] bg-white p-1.5 text-sm shadow-lg">
-              <div role="group" aria-label="Sort games">{[["custom", "Custom"], ["date", "Date Uploaded"], ["az", "A\u2013Z"]].map(([value, label]) => <button type="button" key={value} aria-pressed={sort === value} onClick={() => setSort(value)} className={"flex w-full items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-[#F4F7FB] " + (sort === value ? "bg-[#EEF0FF] font-semibold text-[#4F46E5]" : "text-[#475467]")}>{label}{sort === value && <span aria-hidden="true">&#10003;</span>}</button>)}</div>
+              <div role="group" aria-label="Sort games">{[["custom", "Custom"], ["date", "Date Uploaded"], ["az", "A\u2013Z"]].map(([value, label]) => <button type="button" key={value} aria-pressed={sort === value} onClick={() => setSort(value)} className={("inline-flex items-center gap-2 " + ("flex w-full items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-[#F4F7FB] " + (sort === value ? "bg-[#EEF0FF] font-semibold text-[#4F46E5]" : "text-[#4F46E5]")))}><ActionIcon name="filter" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />{label}{sort === value && <span aria-hidden="true">&#10003;</span>}</button>)}</div>
               <hr className="my-1.5 border-[#E3E8F2]" />
-              <div role="group" aria-label="Sort direction">{[["ascending", "Ascending"], ["descending", "Descending"]].map(([value, label]) => <button type="button" key={value} aria-pressed={direction === value} onClick={() => setDirection(value)} className={"flex w-full items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-[#F4F7FB] " + (direction === value ? "bg-[#EEF0FF] font-semibold text-[#4F46E5]" : "text-[#475467]")}>{label}{direction === value && <span aria-hidden="true">&#10003;</span>}</button>)}</div>
+              <div role="group" aria-label="Sort direction">{[["ascending", "Ascending"], ["descending", "Descending"]].map(([value, label]) => <button type="button" key={value} aria-pressed={direction === value} onClick={() => setDirection(value)} className={("inline-flex items-center gap-2 " + ("flex w-full items-center justify-between rounded-lg px-3 py-2 text-left hover:bg-[#F4F7FB] " + (direction === value ? "bg-[#EEF0FF] font-semibold text-[#4F46E5]" : "text-[#4F46E5]")))}><ActionIcon name="down" className="inline-block h-4 w-4 shrink-0 align-middle mr-2" />{label}{direction === value && <span aria-hidden="true">&#10003;</span>}</button>)}</div>
             </div>
-          </details>
+          </OutsideDetails>
         </div>
 
         {isSuperAdmin && (
@@ -333,13 +338,7 @@ export default function GamesLibrary({
                 className={`relative min-w-0 touch-none select-none self-start rounded-2xl ${target === game.id ? "ring-2 ring-[#6366F1]" : ""} ${dragged === game.id ? "opacity-50" : ""}`}>
               <GameCard
                 game={game}
-                skill={
-                  skills.find(
-                    (skill) =>
-                      skill.id ===
-                      game.skill_id
-                  ) || null
-                }
+                assignedSkills={skills.filter(skill=>hasGameSkill(game,skill.id))}
                 packageStatus={
                   isSuperAdmin
                     ? packages.find(
@@ -366,12 +365,12 @@ export default function GamesLibrary({
 
 function GameCard({
   game,
-  skill,
+  assignedSkills,
   packageStatus,
   isSuperAdmin,
 }: {
   game: GameRow;
-  skill: SkillRow | null;
+  assignedSkills: SkillRow[];
   packageStatus:
     | string
     | null;
@@ -381,9 +380,9 @@ function GameCard({
     <Link
       draggable={false}
       href={`/admin/games/${game.id}`}
-      className="group block overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#CDD5E4] hover:shadow-md"
+      className="overview-card !h-auto group overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#CDD5E4] hover:shadow-md"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-[#EEF0FF]">
+      <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-[#EEF0FF]">
         {game.image_path ? (
           <img
             draggable={false}
@@ -401,16 +400,8 @@ function GameCard({
           </div>
         )}
 
-        <div className="absolute left-3 top-3">
-          <GameStatusBadge
-            status={
-              game.status
-            }
-          />
-        </div>
-
-        {isSuperAdmin &&
-          packageStatus && (
+{isSuperAdmin &&
+          packageStatus && packageStatus !== "ready" && (
             <div className="absolute right-3 top-3">
               <PackageBadge
                 status={
@@ -421,20 +412,14 @@ function GameCard({
           )}
       </div>
 
-      <div className="p-4">
-        <h2 className="line-clamp-2 text-base font-bold leading-6 text-[#172033] transition group-hover:text-[#4F46E5]">
+      <div className="flex h-44 flex-col p-4">
+        <h2 className="line-clamp-2 h-12 shrink-0 text-base font-bold leading-6 text-[#172033] transition group-hover:text-[#4F46E5]">
           {game.name}
         </h2>
 
-        {skill && <div className="mt-2 flex flex-wrap gap-2">
-          {skill && (
-            <span className="rounded-lg bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-semibold text-[#667085] ring-1 ring-[#E8ECF4]">
-              {skill.name}
-            </span>
-          )}
-        </div>}
+        <div className="mt-2 flex h-7 min-w-0 items-center gap-2">{assignedSkills.length ? <span className="inline-flex min-w-0 items-center rounded-lg bg-[#F8FAFC] px-2.5 py-1 text-xs font-medium text-[#667085]"><span className="truncate">{assignedSkills[0].name}</span>{assignedSkills.length > 1 && <span className="ml-2 shrink-0">+{assignedSkills.length - 1}</span>}</span> : <span className="rounded-lg bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">Unassigned</span>}</div>
 
-        <div className="mt-2 flex items-center justify-between border-t border-[#EDF0F5] pt-3">
+        <div className="mt-auto flex items-center justify-between border-t border-[#EDF0F5] pt-3">
           {isSuperAdmin ? (
             <span className="text-xs font-medium text-[#98A2B3]">
               SCORM package
@@ -452,29 +437,6 @@ function GameCard({
         </div>
       </div>
     </Link>
-  );
-}
-
-function GameStatusBadge({
-  status,
-}: {
-  status: string;
-}) {
-  const published =
-    status === "published";
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide shadow-sm ${
-        published
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-white/95 text-[#667085]"
-      }`}
-    >
-      {published
-        ? "Published"
-        : "Draft"}
-    </span>
   );
 }
 

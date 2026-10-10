@@ -1,6 +1,7 @@
 import "server-only";
 
 import JSZip from "jszip";
+import { packageLimits, readZipEntry, assertPackagePath } from "./package-limits";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type ProcessScormPackageOptions = {
@@ -537,6 +538,8 @@ export async function processScormPackage({
         zipBuffer
       );
 
+    if (Object.keys(zip.files).length > packageLimits.files) throw new Error("The SCORM package contains too many entries.");
+
     const manifestPath =
       findManifestPath(zip);
 
@@ -552,10 +555,7 @@ export async function processScormPackage({
       );
     }
 
-    const manifestXml =
-      await manifestFile.file.async(
-        "string"
-      );
+    const manifestXml = new TextDecoder().decode(await readZipEntry(manifestFile.file, packageLimits.manifestBytes));
 
     const scormVersion =
       detectScormVersion(
@@ -614,12 +614,14 @@ export async function processScormPackage({
       );
     }
 
+    let extractedBytes = 0;
     for (
       const [
         originalPath,
         entry,
       ] of uploadEntries
     ) {
+      assertPackagePath(entry.unsafeOriginalName || originalPath);
       const normalizedPath =
         normalizeZipPath(
           originalPath
@@ -639,10 +641,8 @@ export async function processScormPackage({
         );
       }
 
-      const fileData =
-        await entry.async(
-          "uint8array"
-        );
+      const fileData = await readZipEntry(entry, Math.min(packageLimits.fileBytes, packageLimits.totalBytes - extractedBytes));
+      extractedBytes += fileData.byteLength;
 
       const destination =
         `${extractionPath}/${normalizedPath}`;

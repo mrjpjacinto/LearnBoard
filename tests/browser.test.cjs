@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- Node's test runner uses CommonJS for .cjs files. */
 const test=require("node:test"),assert=require("node:assert/strict"),http=require("node:http"),path=require("node:path"),os=require("node:os"),fs=require("node:fs");
 const load=require("./load-typescript.cjs"),{scormBridge}=load("lib/scorm/bridge.ts");
 let chromium;
@@ -29,4 +28,18 @@ test("production app denies unauthenticated and cross-origin mutations",{skip:!p
  for(const route of ["/api/admin/reports","/api/admin/reports/progress","/api/admin/reports/00000000-0000-0000-0000-000000000001"]){assert.equal((await fetch(origin+route)).status,401);}
  const post=await fetch(origin+"/api/student/launch",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});assert.equal(post.status,401);
  const csrf=await fetch(origin+"/api/admin/assignments",{method:"POST",headers:{Origin:"null","Content-Type":"application/json"},body:"{}"});assert.equal(csrf.status,403);
+});
+
+test("login remains usable at mobile, tablet and desktop widths",{skip:!chromium||!fs.existsSync(chrome)||!process.env.LEARNBOARD_TEST_URL?"Requires browser tooling and local production preview":false},async()=>{
+ const browser=await chromium.launch({executablePath:chrome,headless:true,args:["--disable-gpu"]});
+ try{
+ for(const width of [360,768,1440]){
+  const page=await browser.newPage({viewport:{width,height:900}});await page.goto(process.env.LEARNBOARD_TEST_URL);await page.locator('input[type="email"]').waitFor();
+  assert.equal(await page.locator('input[type="email"]').isVisible(),true);assert.equal(await page.locator('input[type="password"]').isVisible(),true);assert.equal(await page.locator('button[type="submit"]').isVisible(),true);
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),"Login has horizontal overflow at "+width);
+  for(const input of await page.locator('input[type="email"],input[type="password"]').all()){const id=await input.getAttribute('id');assert.ok(id);assert.equal(await page.locator('label[for="'+id+'"]').count(),1)}
+  if(process.env.LEARNBOARD_QA_DIR){fs.mkdirSync(process.env.LEARNBOARD_QA_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.LEARNBOARD_QA_DIR,'login-'+width+'.png'),fullPage:true})}
+  await page.close();
+ }
+ }finally{await browser.close()}
 });

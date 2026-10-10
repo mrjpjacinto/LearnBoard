@@ -1,3 +1,5 @@
+import { loadGameClassifications } from "@/lib/lms/game-skills-server";
+import { gameSubjectIds } from "@/lib/lms/game-skills";
 import PathGameTiles from "@/components/PathGameTiles";
 import PathStudents from "@/components/PathStudents";
 
@@ -43,6 +45,9 @@ type GameRow = {
   image_path: string | null;
   orientation_mode: string | null;
   subject_id: string | null;
+  skill_id: string | null;
+  skill_ids?:string[];
+  subject_ids?:string[];
   status: string;
 };
 
@@ -237,6 +242,7 @@ export default async function ManageLearningPathPage({
           image_path,
           orientation_mode,
           subject_id,
+          skill_id,
           status
         `
       )
@@ -249,7 +255,7 @@ export default async function ManageLearningPathPage({
       );
     } else {
       games =
-        (data || []) as GameRow[];
+        await loadGameClassifications(admin,(data || []) as GameRow[]);
     }
   }
 
@@ -257,10 +263,7 @@ export default async function ManageLearningPathPage({
     Array.from(
       new Set(
         games
-          .map(
-            (game) =>
-              game.subject_id
-          )
+          .flatMap(game=>gameSubjectIds(game))
           .filter(
             (
               subjectId
@@ -436,7 +439,7 @@ export default async function ManageLearningPathPage({
                 </p>
               </div>
 
-              <PrimaryAddLink href={`/admin/paths/${path.id}/games`}>Add Games</PrimaryAddLink>
+              <PrimaryAddLink href={`/admin/paths/${path.id}/games`}>Manage Games</PrimaryAddLink>
             </div>
 
             {pathGamesError ? (
@@ -478,7 +481,7 @@ export default async function ManageLearningPathPage({
 
               </div>
             ) : (
-              <PathGameTiles key={path.updated_at} pathId={path.id} updatedAt={path.updated_at} games={orderedGames.map(item => ({ id: item.game.id, name: item.game.name, imageUrl: getGameImageUrl(item.game.image_path), subject: item.game.subject_id ? subjectMap.get(item.game.subject_id) || null : null, orientation: item.game.orientation_mode || "landscape" }))} />
+              <PathGameTiles key={path.updated_at} pathId={path.id} updatedAt={path.updated_at} games={orderedGames.map(item => ({ id: item.game.id, name: item.game.name, imageUrl: getGameImageUrl(item.game.image_path), subject: gameSubjectIds(item.game).map(id=>subjectMap.get(id)).filter(Boolean).join(", ") || null, orientation: item.game.orientation_mode || "landscape" }))} />
             )}
           </section>
 

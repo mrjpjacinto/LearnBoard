@@ -1,3 +1,4 @@
+import { readJson, RequestBodyError } from "@/lib/security/read-json";
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -40,13 +41,14 @@ export function checkDb(error: { message: string; code?: string } | null) {
   throw new LmsError("Unable to save or load learning data. Please try again.", 500);
 }
 export function apiError(error: unknown) {
+  if (error instanceof RequestBodyError) return NextResponse.json({ error: error.message }, { status: error.status });
   if (error instanceof LmsError) return NextResponse.json({ error: error.message }, { status: error.status });
   console.error("LMS request failed:", error);
   return NextResponse.json({ error: "Unable to complete the request." }, { status: 500 });
 }
 export async function jsonBody(request: Request): Promise<Record<string, unknown>> {
-  try { const value = await request.json(); if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(); return value; }
-  catch { throw new LmsError("Invalid request."); }
+  try { return await readJson(request); }
+  catch (error) { if (error instanceof RequestBodyError) throw new LmsError(error.message, error.status); throw error; }
 }
 export function uuid(value: unknown, label = "Record") {
   if (typeof value !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new LmsError(`${label} is invalid.`);

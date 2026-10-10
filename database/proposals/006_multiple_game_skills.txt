@@ -1,0 +1,15 @@
+Live status: user confirmed successful application on 2026-10-11. Read-only REST inspection confirms the expected functions are present; bodies, grants and policies are not independently verified. Do not rerun this migration.
+
+Multiple game skills rollout
+
+Implementation and local PostgreSQL checks are complete. This migration has NOT been executed on Supabase.
+
+Apply 006_multiple_game_skills.sql once to the existing project through Supabase SQL Editor or a PostgreSQL connection, after taking a current backup. This is an additive classification migration, independent of proposals 003 and 005. Do not rerun 004.
+
+It creates game_skills, backfills existing valid single-skill assignments, and installs an atomic server-only save function. Existing game IDs, ZIPs, images, Learning Paths, attempts and scores are retained. Primary skill/subject columns remain compatible with existing consumers; removing one classification promotes a surviving skill or clears both when none remain.
+
+Super Admin uses Subjects & Skills checkboxes in Add Game / Game Details. School Admin can browse the shared catalog and filter Learning Path games by any linked subject, but cannot change game classifications. Multiple skill associations do not create separate attempts or scores per skill.
+
+Before migration, existing single-skill saves keep working. Multiple-skill saves return a setup message before creating a game or uploading an image.
+
+Verification: run node scripts/verify-multiple-game-skills.cjs with the path to a locally installed @electric-sql/pglite module. No live connection is used by this check. Also run TypeScript checks and the test suite. After applying to Supabase, verify the game_skills row count matches the prior valid skill assignments, select multiple skills across subjects for a game, refresh, filter by each skill, and verify a classification deletion leaves remaining associations and student history intact.

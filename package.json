@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/*.test.cjs"
+    "test": "node --test tests/*.test.cjs",
+    "typecheck": "tsc --noEmit --incremental false",
+    "test:release": "node scripts/test-release.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -1,0 +1,4 @@
+import {createHmac,timingSafeEqual} from "node:crypto";
+export type PreviewClaim={user:string;game:string;package:string;expires:number};
+export function signPreview(claim:PreviewClaim,secret:string){const body=Buffer.from(JSON.stringify(claim)).toString("base64url");return body+"."+createHmac("sha256",secret).update(body).digest("base64url")}
+export function verifyPreview(token:string,secret:string,now=Date.now()):PreviewClaim{const [body,sig,...extra]=token.split(".");if(!body||!sig||extra.length||token.length>2048)throw Error("Invalid preview");const a=Buffer.from(sig,"base64url"),b=createHmac("sha256",secret).update(body).digest();if(a.length!==b.length||!timingSafeEqual(a,b))throw Error("Invalid preview");const c=JSON.parse(Buffer.from(body,"base64url").toString());if(![c.user,c.game,c.package].every(v=>typeof v==="string"&&/^[0-9a-f-]{36}$/i.test(v))||!Number.isFinite(c.expires)||c.expires<=now)throw Error("Preview expired");return c}

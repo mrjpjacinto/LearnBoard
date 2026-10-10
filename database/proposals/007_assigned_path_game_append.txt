@@ -1,0 +1,15 @@
+SUPERSEDED by 008_editable_learning_paths.sql. Do not apply 007 for the revised editable-path design.
+
+Assigned Learning Path games fix
+
+The existing learnboard_save_path_games function rejects all changes when any individual or class assignment exists. The editor currently lets users add games, then reports that database refusal.
+
+007_assigned_path_game_append.sql replaces that blanket rejection with append-only editing for assigned paths. Existing game links, link IDs, order, assignments, attempts, runtime, scores and files are unchanged. New games appear at the end for current students. Paths without assignments retain full rearrange/remove functionality. Authentication, active-school checks, tenant boundaries, the 200-game limit and stale-edit protection remain enforced inside the RPC.
+
+The app disables removal and movement of existing assigned games and explains why. New unsaved additions can be rearranged or removed until saved.
+
+This fix does not depend on proposals 005 or 006 and can be applied first. The SQL guard verifies the original reviewed function and refuses a different definition or an additional sequence guard. Do not rerun proposal 004.
+
+Live application remains pending because this workspace has no SQL connection or connected browser. Take a current database backup, then execute only 007_assigned_path_game_append.sql in Supabase SQL Editor. Refresh Add & Arrange Games, add a game at the end, save, and verify the old order and student scores remain. Existing live sequence restrictions remain until that SQL is applied.
+
+Local verification: node --test tests/assigned-path-append.test.cjs (uses PGlite when available). It restores the reviewed catalog and verifies assigned appends, preserved link IDs and scores, refusal of rearrange/remove, wrong-school protection, stale-update detection, and full editing of unassigned paths.

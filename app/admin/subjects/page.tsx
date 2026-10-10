@@ -1,3 +1,4 @@
+import { loadGameClassifications } from "@/lib/lms/game-skills-server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -125,8 +126,7 @@ export default async function SubjectsPage() {
     (skillsResult.data ||
       []) as SkillRow[];
 
-  const games =
-    gamesResult.data || [];
+  const games = await loadGameClassifications(admin,gamesResult.data || []);
 
   const totalSubjects =
     subjects.length;
@@ -144,7 +144,7 @@ export default async function SubjectsPage() {
     games.filter(
       (game) =>
         Boolean(
-          game.subject_id
+          game.skill_ids.length
         )
     ).length;
 
@@ -216,7 +216,7 @@ export default async function SubjectsPage() {
             & Skills.
           </div>
         ) : (
-          <SubjectsSkillsManager
+          <SubjectsSkillsManager isSuperAdmin={profile.role === "super_admin"}
             subjects={
               subjects
             }

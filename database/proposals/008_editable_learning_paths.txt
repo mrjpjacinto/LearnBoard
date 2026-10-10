@@ -1,0 +1,4 @@
+Editable learning paths - applied
+
+User confirmed successful live application on 2026-10-11. Read-only REST inspection confirms lumentrail_remove_path_student is exposed. This does not independently verify function bodies or grants.
+Do not rerun 008 or apply superseded 007. Proposal 004 was already applied earlier.

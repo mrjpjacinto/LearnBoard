@@ -2,6 +2,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 The existing **LearnBoard Database** is documented in [database/README.md](database/README.md). Database proposals require review and approval before execution.
 
+## Prelaunch readiness
+
+LumenTrail remains under development. See [readiness checklist](docs/PRELAUNCH_READINESS.md) and [recovery procedures](docs/RECOVERY.md). Database proposals require explicit approval; no script automatically applies them. Run `npm run test:release` against a running local production server for automated checks with no skipped integration tests.
+
 ## Getting Started
 
 First, run the development server:

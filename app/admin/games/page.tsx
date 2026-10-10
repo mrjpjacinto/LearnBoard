@@ -1,3 +1,4 @@
+import { loadGameClassifications } from "@/lib/lms/game-skills-server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -226,7 +227,7 @@ export default async function GamesPage() {
    * School Admin receives no SCORM
    * values from the database.
    */
-  const games: GameRow[] =
+  const preparedGames: GameRow[] =
     rawGames.map(
       (game) => ({
         ...game,
@@ -234,6 +235,8 @@ export default async function GamesPage() {
         launch_file: null,
       })
     );
+
+  const games = await loadGameClassifications(admin,preparedGames);
 
   const subjects =
     (subjectsResult.data ||
@@ -285,6 +288,7 @@ export default async function GamesPage() {
         : null
     );
 
+  for (const game of games) { const skill = skills.find(skill => skill.id === game.skill_id); if (skill) game.subject_id = skill.subject_id; }
   return (
     <main className="min-h-screen bg-[#F4F7FB] p-6 lg:p-8">
       <div className="mx-auto max-w-[1500px]">

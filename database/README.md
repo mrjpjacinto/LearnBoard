@@ -98,3 +98,7 @@ After approval and correction, reload and verify the Super Admin label, Schools
 navigation, all three roster entries, and content access. Games/SCORM and
 Subjects retain their existing implementation; their authenticated end-to-end
 behavior has not been verified by these read-only database queries.
+
+## Prelaunch security proposal 2026-10-10
+
+Proposal 004_prelaunch_security.sql is a review-only security alternative to the Master Paths proposal. It defaults signup profiles to student, closes exported group/member/profile read boundaries, removes dangerous browser grants, and protects assignment/attempt/class history links. tests/prelaunch-database.test.cjs verifies it in an isolated database built from the saved catalog. It has not been applied to Supabase. Do not chain proposals 003 and 004 without a fresh consolidated review; 004 intentionally requires the reviewed legacy policy/function baseline. See ../docs/PRELAUNCH_READINESS.md and ../docs/RECOVERY.md for release and recovery gates.

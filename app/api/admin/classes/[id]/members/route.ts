@@ -1,6 +1,8 @@
+import { readJson } from "@/lib/security/read-json";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { ownedClass } from "@/lib/lms/class-auth";
+import { apiError } from "@/lib/lms/auth";
+
 
 type Context = {
   params: Promise<{
@@ -8,97 +10,9 @@ type Context = {
   }>;
 };
 
-async function authorize(
-  classId: string
-) {
-  const supabase =
-    await createClient();
-
-  const {
-    data: { user },
-  } =
-    await supabase.auth.getUser();
-
-  if (!user) {
-    return {
-      error: NextResponse.json(
-        { error: "Unauthorized." },
-        { status: 401 }
-      ),
-    };
-  }
-
-  const { data: profile } =
-    await supabase
-      .from("profiles")
-      .select(
-        "role, is_active, school_id"
-      )
-      .eq("id", user.id)
-      .single();
-
-  const isSuperAdmin =
-    profile?.role ===
-    "super_admin";
-
-  const isSchoolAdmin =
-    profile?.role === "admin";
-
-  if (
-    !profile ||
-    !profile.is_active ||
-    (!isSuperAdmin &&
-      !isSchoolAdmin)
-  ) {
-    return {
-      error: NextResponse.json(
-        { error: "Forbidden." },
-        { status: 403 }
-      ),
-    };
-  }
-
-  const admin =
-    createAdminClient();
-
-  const { data: targetClass } =
-    await admin
-      .from("groups")
-      .select(
-        "id, school_id"
-      )
-      .eq("id", classId)
-      .maybeSingle();
-
-  if (!targetClass) {
-    return {
-      error: NextResponse.json(
-        {
-          error:
-            "Class not found.",
-        },
-        { status: 404 }
-      ),
-    };
-  }
-
-  if (
-    isSchoolAdmin &&
-    targetClass.school_id !==
-      profile.school_id
-  ) {
-    return {
-      error: NextResponse.json(
-        { error: "Forbidden." },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return {
-    admin,
-    targetClass,
-  };
+async function authorize(classId: string) {
+  try { const {admin,targetClass} = await ownedClass(classId); return {admin,targetClass}; }
+  catch(error) { return {error:apiError(error)}; }
 }
 
 export async function POST(
@@ -120,8 +34,8 @@ export async function POST(
     targetClass,
   } = authorization;
 
-  const body =
-    await request.json();
+  let body: Record<string,unknown>;
+  try { body = await readJson(request); } catch(error) { return apiError(error); }
 
   const studentId =
     typeof body.studentId ===
@@ -222,8 +136,8 @@ export async function DELETE(
   const { admin } =
     authorization;
 
-  const body =
-    await request.json();
+  let body: Record<string,unknown>;
+  try { body = await readJson(request); } catch(error) { return apiError(error); }
 
   const studentId =
     typeof body.studentId ===

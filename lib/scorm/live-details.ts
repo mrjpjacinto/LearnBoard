@@ -7,3 +7,16 @@ export function liveDetails(raw: Record<string,string>) {
   const times = answered.filter(a=>a.latency!==null && a.latency!>0).map(a=>a.latency!);
   return { question: Math.max(1,...answers.map(a=>Number(a.id)).filter(Number.isFinite)), answered:answered.length, correct, incorrect, accuracy:correct+incorrect ? Math.round(correct/(correct+incorrect)*100) : null, quiz:answers.at(-1)?.id || null, averageSeconds:times.length ? Math.round(times.reduce((n,s)=>n+s,0)/times.length) : null };
 }
+
+export function restoredQuestion(raw: Record<string,string>): number | null {
+ const value = Number(raw["cmi.lumentrail.question"]);
+ return Number.isInteger(value) && value > 0 ? value : null;
+}
+export function hasStarted(raw: Record<string,string>): boolean {
+ return raw["cmi.lumentrail.started"] === "true" || Object.keys(raw).some(k => /^cmi\.interactions\.\d+\.result$/.test(k));
+}
+
+export function savedElapsed(raw: Record<string,string>): number {
+ const seconds = Number(raw["cmi.lumentrail.elapsed"]);
+ return Number.isFinite(seconds) && seconds >= 0 ? Math.floor(seconds) : 0;
+}

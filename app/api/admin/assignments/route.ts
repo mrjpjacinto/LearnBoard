@@ -20,6 +20,9 @@ async function save(request: Request) {
     if (!target || !target.is_active || (kind === "student" && "role" in target && target.role !== "student")) throw new LmsError("Choose an active student or class.");
     assertSchool(profile, target.school_id);
     const config = scheduleInput(body);
+    if (kind === "class" && config.status === "completed") throw new LmsError("Choose a valid class assignment status.");
+    // Path games have one chance and use the availability window for expiration.
+    if (boardId) { config.max_attempts = 1; config.time_limit_minutes = null; }
     const { data, error: saveError } = await admin.rpc("learnboard_save_assignment", { p_actor: profile.id, p_kind: kind, p_id: id, p_board: boardId, p_game: gameId, p_target: targetId, p_config: config });
     if (saveError?.code === "P0001") throw new LmsError(saveError.message, 409);
     checkDb(saveError);

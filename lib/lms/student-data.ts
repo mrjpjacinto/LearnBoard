@@ -2,14 +2,14 @@ import "server-only";
 import { authorize, checkDb, LmsError } from "./auth";
 import { permittedAttempts } from "./student-portal";
 import { attemptColumns, type Assignment, type ClassAssignment, type Attempt, type Game, type LearningPath, type Schedule } from "./types";
-export type StudentLearning = Schedule & { key: string; assignmentId: string | null; classAssignmentId: string | null; title: string; description: string | null; className: string | null; games: Game[]; attempts: Attempt[]; boardId: string | null };
+export type StudentLearning = Schedule & { key: string; assignmentId: string | null; classAssignmentId: string | null; title: string; description: string | null; className: string | null; games: Game[]; historicalGames?: Game[]; attempts: Attempt[]; boardId: string | null };
 export async function studentLearning() {
   const auth = await authorize(["student"]);
   const { admin, profile } = auth;
   const [assigned, memberships, attemptsResult] = await Promise.all([
     admin.from("assignments").select("*").eq("student_id", profile.id).eq("school_id", profile.school_id!),
     admin.from("group_members").select("group_id").eq("user_id", profile.id),
-    admin.from("attempts").select(attemptColumns).eq("student_id", profile.id).order("started_at", { ascending: false }),
+    admin.from("attempts").select(`${attemptColumns},resume_permission:launch_config->allow_resume,resume_deadline:launch_config->>deadline`).eq("student_id", profile.id).order("started_at", { ascending: false }),
   ]);
   [assigned, memberships, attemptsResult].forEach(r => checkDb(r.error));
   const groupIds = (memberships.data || []).map(m => m.group_id);
@@ -38,10 +38,18 @@ export async function studentLearning() {
   checkDb(boardsResult.error); checkDb(relationsResult.error);
   const boards = (boardsResult.data || []) as LearningPath[];
   const relations = relationsResult.data || [];
-  const gameIds = [...new Set([...assignments.map(a => a.game_id), ...relations.map(r => r.game_id)].filter((id): id is string => !!id))];
+  const gameIds = [...new Set([...assignments.map(a => a.game_id), ...relations.map(r => r.game_id), ...(attemptsResult.data || []).map(a=>a.game_id)].filter((id): id is string => !!id))];
   const gamesResult = gameIds.length ? await admin.from("games").select("id,name,description,image_path,subject_id,skill_id,status").in("id", gameIds) : { data: [], error: null };
   checkDb(gamesResult.error);
-  const games = (gamesResult.data || []) as Game[], attempts = (attemptsResult.data || []) as Attempt[];
+  const games = (gamesResult.data || []) as Game[], attempts = ((attemptsResult.data || []) as unknown as (Attempt & { resume_permission?: boolean; resume_deadline?: string | null })[]).map(({ resume_permission, resume_deadline, ...attempt }) => ({ ...attempt, can_resume: attempt.status === "in_progress" && resume_permission === true && (!resume_deadline || Date.parse(resume_deadline) > Date.now()) }));
+  if (attempts.length) {
+    const saved = await admin.from("scorm_runtime_data").select("attempt_id,raw_data").in("attempt_id", attempts.map(a => a.id));
+    checkDb(saved.error);
+    for (const attempt of attempts) {
+      const raw = saved.data?.find(r => r.attempt_id === attempt.id)?.raw_data as Record<string,string> | undefined;
+      attempt.has_started = raw?.["cmi.lumentrail.started"] === "true" || Object.keys(raw || {}).some(k => /^cmi\.interactions\.\d+\.result$/.test(k)) || attempt.completion_status === "completed";
+    }
+  }
   const pathGames = (boardId: string) => relations.filter(r => r.board_id === boardId).map(r => games.find(g => g.id === r.game_id)).filter((g): g is Game => !!g);
   const learning: StudentLearning[] = [];
   for (const a of assignments.filter(a => !a.group_assignment_id)) {
@@ -55,7 +63,7 @@ export async function studentLearning() {
     const materialized = assignments.find(a => a.group_assignment_id === source.id);
     learning.push({ ...source, key: `class:${source.id}`, assignmentId: materialized?.id || null, classAssignmentId: source.id, title: board.name, description: board.description, className: groups.find(g => g.id === source.group_id)?.name || null, games: pathGames(board.id), attempts: materialized ? attempts.filter(t => t.assignment_id === materialized.id) : [], boardId: board.id });
   }
-  for (const item of learning) item.attempts = permittedAttempts(item.attempts, item.score_visible);
+  for (const item of learning) { item.historicalGames=games.filter(g=>item.attempts.some(a=>a.game_id===g.id)); item.attempts = permittedAttempts(item.attempts, item.score_visible); }
   return { ...auth, learning };
 }
 export async function studentAssignment(assignmentId: string) {

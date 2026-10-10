@@ -293,7 +293,7 @@ export default async function UsersPage() {
 
             <Link
               href="/admin/classes"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-white px-5 py-3 text-sm font-semibold text-[#475467] shadow-sm transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-5 py-3 text-sm font-semibold text-[#4F46E5] shadow-sm transition hover:border-[#A5B4FC] hover:bg-[#F5F6FF] hover:text-[#4F46E5]"
             >
               <svg
                 viewBox="0 0 24 24"

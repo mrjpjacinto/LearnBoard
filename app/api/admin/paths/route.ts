@@ -1,3 +1,4 @@
+import { readJson } from "@/lib/security/read-json";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -81,7 +82,7 @@ export async function POST(
 
     try {
       body =
-        (await request.json()) as CreatePathBody;
+        (await readJson(request)) as CreatePathBody;
     } catch {
       return NextResponse.json(
         {

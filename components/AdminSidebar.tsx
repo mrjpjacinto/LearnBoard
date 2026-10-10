@@ -106,9 +106,9 @@ export default function AdminSidebar({
     );
 
   return (
-    <aside className="sticky top-0 flex h-dvh w-[64px] lg:w-[260px] shrink-0 flex-col bg-[#0F172A]">
+    <aside className="fixed inset-y-0 left-0 z-30 flex h-dvh w-[64px] lg:w-[260px] shrink-0 flex-col bg-[#0F172A]">
 
-      <div className="flex h-[82px] items-center border-b border-white/[0.06] px-3 lg:px-6">
+      <div className="flex h-[82px] shrink-0 items-center border-b border-white/[0.06] px-3 lg:px-6">
 
         <Link
           href="/admin"
@@ -119,7 +119,7 @@ export default function AdminSidebar({
 
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-5 lg:px-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-5 lg:px-3">
 
         <div className="space-y-1">
 
@@ -177,11 +177,11 @@ export default function AdminSidebar({
 
       </nav>
 
-      <div className="border-t border-white/[0.06] p-4">
+      <div className="shrink-0 border-t border-white/[0.06] p-4">
 
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
 
-          <Link href="/admin/settings" aria-label="Open account settings" className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-[5px] hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A5B4FC]">
+          <Link href="/admin/settings" aria-label="Open account settings" className="flex min-w-0 flex-1 items-center gap-3 rounded-lg p-[5px] hover:bg-[#EEF0FF]/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#A5B4FC]">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#263248] text-xs font-bold uppercase text-[#C7D2FE]">
             {avatar ? <img src={avatar} alt="Your profile" className="h-full w-full object-cover" /> : initials}
           </div>

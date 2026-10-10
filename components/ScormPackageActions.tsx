@@ -397,7 +397,7 @@ export default function ScormPackageActions({
                       false
                     )
                   }
-                  className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition hover:bg-[#F2F4F7] hover:text-[#475467] disabled:opacity-50"
+                  className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition hover:bg-[#F2F4F7] hover:text-[#4F46E5] disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
                   aria-label="Close"
                 >
                   <CloseIcon />
@@ -415,7 +415,7 @@ export default function ScormPackageActions({
                   </span>{" "}
                   Your game, title,
                   description, subject,
-                  orientation, and image
+                  and image
                   will remain unchanged.
                 </p>
               </div>
@@ -430,7 +430,7 @@ export default function ScormPackageActions({
                     false
                   );
                 }}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#CBD5E1] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center gap-2 inline-flex h-10 items-center justify-center rounded-xl border border-[#D8DEEA] bg-[#EEF0FF] px-4 text-sm font-semibold text-[#4F46E5] transition hover:bg-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#CBD5E1] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 !border-red-200 !bg-red-50 !text-red-700 hover:!bg-red-100 focus-visible:!outline-red-500 focus:!ring-red-200"
               ><ActionIcon name="close" />
                 Cancel
               </button>

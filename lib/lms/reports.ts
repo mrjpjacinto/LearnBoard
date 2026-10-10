@@ -1,7 +1,13 @@
 import "server-only";
 import { authorize, assertSchool, checkDb, LmsError, uuid } from "./auth";
 import { readAll } from "./query";
-import { summarizeQuizzes, type QuizEvent } from "./quiz-results";
+import { summarizeQuizzes, runtimeQuizEvents, type QuizEvent } from "./quiz-results";
+async function withRuntimeEvents(admin: Awaited<ReturnType<typeof authorize>>["admin"], events: QuizEvent[], attemptIds: string[]) {
+  const missing = attemptIds.filter(id => !events.some(event => event.attempt_id === id));
+  if (!missing.length) return events;
+  const runtime = await readAll(admin.from("scorm_runtime_data").select("attempt_id,raw_data,updated_at").in("attempt_id",missing).order("attempt_id"));
+  return [...events,...runtime.flatMap(row => runtimeQuizEvents(row.attempt_id, row.raw_data || {}, row.updated_at))];
+}
 export async function reportData(params: URLSearchParams) {
   const { admin, profile } = await authorize(["super_admin", "admin"]);
   let students = admin.from("profiles").select("id,full_name,email,school_id").eq("role", "student").order("full_name");
@@ -21,7 +27,7 @@ export async function reportData(params: URLSearchParams) {
   const ids = roster.map(s => s.id);
   const page = Math.floor(Math.max(1,Math.min(10000,Number(params.get("page")) || 1)));
   if (!ids.length) return { rows: [], total: 0, page, students: [] };
-  // Never select package IDs, launch configuration or runtime data for reports.
+  // Runtime is projected into quiz outcomes server-side; never serialize raw data or launch configuration.
   let attempts = admin.from("attempts").select("id,student_id,game_id,assignment_id,attempt_number,started_at,completed_at,score,status,completion_status,success_status,time_spent_seconds",{ count:"exact" }).in("student_id",ids);
   const game = params.get("game"); if (game) attempts = attempts.eq("game_id",uuid(game,"Game"));
   const board = params.get("path");
@@ -50,10 +56,11 @@ export async function reportData(params: URLSearchParams) {
   ]);
   checkDb(games.error); checkDb(boards.error); checkDb(schools.error);
   const rows = (result.data || []).map(a=>{const student=roster.find(s=>s.id===a.student_id); const assignment=assignments.find(v=>v.id===a.assignment_id); return {...a,student_name:student?.full_name || student?.email || "Student",school_id:student?.school_id,game_name:games.data?.find(g=>g.id===a.game_id)?.name || "Game unavailable",path_name:boards.data?.find(b=>b.id===assignment?.board_id)?.name || "Individual game"};});
+  const reportEvents = await withRuntimeEvents(admin, events as QuizEvent[], attemptIds);
   const enriched = rows.map(row => ({ ...row,
     school_name: schools.data?.find(s => s.id === row.school_id)?.name || "School not assigned",
     image_path: games.data?.find(g => g.id === row.game_id)?.image_path || null,
-    ...summarizeQuizzes(events.filter(event => event.attempt_id === row.id) as QuizEvent[]),
+    ...summarizeQuizzes(reportEvents.filter(event => event.attempt_id === row.id) as QuizEvent[]),
   }));
   return { rows: enriched,total:result.count || 0,page,students:roster };
 }
@@ -79,7 +86,8 @@ export async function reportAttempt(id: string) {
     .select("id,attempt_id,quiz_id,quiz_attempt,is_correct,speed,created_at")
     .eq("attempt_id",attempt.id).eq("student_id",attempt.student_id).eq("game_id",attempt.game_id)
     .order("created_at").order("id"));
-  return { events, ...summarizeQuizzes(events as QuizEvent[]) };
+  const reportEvents = await withRuntimeEvents(admin, events as QuizEvent[], [attempt.id]);
+  return { events: reportEvents, ...summarizeQuizzes(reportEvents) };
 }
 
 // Validate the selected session before resolving its student's assigned materials.
@@ -97,7 +105,8 @@ export async function reportMaterials(id: string) {
   const board = assignment?.data?.board_id;
   const sequence = board ? await admin.from("learning_board_games").select("game_id,sort_order").eq("board_id", board).order("sort_order") : null;
   if (sequence) checkDb(sequence.error);
-  const gameIds = sequence?.data?.map(item => item.game_id) || [attempt.game_id];
+  const historical = attempt.assignment_id ? await readAll(admin.from("attempts").select("game_id").eq("assignment_id",attempt.assignment_id).eq("student_id",attempt.student_id).order("id")) : [];
+  const gameIds = [...new Set([...(sequence?.data?.map(item => item.game_id) || []), attempt.game_id, ...historical.map(item=>item.game_id)])];
   const games = gameIds.length ? await admin.from("games").select("id,name,description,image_path").in("id", gameIds) : { data: [], error: null };
   checkDb(games.error);
   let query = admin.from("attempts").select("id,game_id,attempt_number,started_at").eq("student_id", attempt.student_id);
@@ -107,5 +116,6 @@ export async function reportMaterials(id: string) {
   if (path) checkDb(path.error);
   const sessionIds = sessions.map(session => session.id);
   const events = sessionIds.length ? await readAll(admin.from("game_score_events").select("id,attempt_id,quiz_id,quiz_attempt,is_correct,speed,created_at").in("attempt_id", sessionIds).eq("student_id", attempt.student_id).order("created_at").order("id")) : [];
-  return { path: path?.data?.name || "Individual game", student: student.data!.full_name || student.data!.email, games: gameIds.map(gameId => ({ ...games.data!.find(game => game.id === gameId)!, events: events.filter(event => sessions.some(session => session.game_id === gameId && session.id === event.attempt_id)) })).filter(game => game.id) };
+  const reportEvents = await withRuntimeEvents(admin, events as QuizEvent[], sessionIds);
+  return { path: path?.data?.name || "Individual game", student: student.data!.full_name || student.data!.email, games: gameIds.map(gameId => ({ ...games.data!.find(game => game.id === gameId)!, events: reportEvents.filter(event => sessions.some(session => session.game_id === gameId && session.id === event.attempt_id)) })).filter(game => game.id) };
 }

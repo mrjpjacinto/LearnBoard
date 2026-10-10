@@ -1,4 +1,6 @@
 "use client";
+import { hasGameSkill, hasGameSubject } from "@/lib/lms/game-skills";
+import { Notification, showToast } from "./LmsToast";
 import ActionIcon from "@/components/ActionIcon";
 import { addButtonClass } from "@/lib/ui/buttons";
 
@@ -6,6 +8,8 @@ import { addButtonClass } from "@/lib/ui/buttons";
 import {
   FormEvent,
   useMemo,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -32,9 +36,12 @@ type GameRow = {
   id: string;
   subject_id: string | null;
   skill_id: string | null;
+  skill_ids?: string[];
+  subject_ids?: string[];
 };
 
 type SubjectsSkillsManagerProps = {
+  isSuperAdmin: boolean;
   subjects: SubjectRow[];
   skills: SkillRow[];
   games: GameRow[];
@@ -44,6 +51,7 @@ const inputClass =
   "h-12 w-full rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm text-[#172033] outline-none transition placeholder:text-[#98A2B3] focus:border-[#818CF8] focus:ring-4 focus:ring-[#6366F1]/10 disabled:cursor-not-allowed disabled:bg-[#F8FAFC] disabled:text-[#98A2B3]";
 
 export default function SubjectsSkillsManager({
+  isSuperAdmin,
   subjects,
   skills,
   games,
@@ -78,6 +86,8 @@ export default function SubjectsSkillsManager({
   ] = useState<SkillRow | null>(
     null
   );
+
+  const [draftSubjectName, setDraftSubjectName] = useState<string | null>(null);
 
   const filteredSubjects =
     useMemo(() => {
@@ -147,7 +157,7 @@ export default function SubjectsSkillsManager({
             />
           </div>
 
-          <PrimaryAddButton
+          {isSuperAdmin && (<PrimaryAddButton
             onClick={() =>
               setShowSubjectModal(
                 true
@@ -156,11 +166,11 @@ export default function SubjectsSkillsManager({
             className="self-start lg:self-auto"
           >
             Add Subject
-          </PrimaryAddButton>
+          </PrimaryAddButton>)}
         </div>
 
         {subjects.length === 0 ? (
-          <EmptyState
+          <EmptyState canManage={isSuperAdmin}
             onAddSubject={() =>
               setShowSubjectModal(
                 true
@@ -187,7 +197,7 @@ export default function SubjectsSkillsManager({
           <div className="grid gap-layout xl:grid-cols-2">
             {filteredSubjects.map(
               (subject) => (
-                <SubjectCard
+                <SubjectCard canManage={isSuperAdmin}
                   key={subject.id}
                   subject={subject}
                   skills={skills.filter(
@@ -220,7 +230,7 @@ export default function SubjectsSkillsManager({
         )}
       </section>
 
-      {showSubjectModal && (
+      {isSuperAdmin && showSubjectModal && (
         <AddSubjectModal
           onClose={() =>
             setShowSubjectModal(
@@ -236,7 +246,7 @@ export default function SubjectsSkillsManager({
         />
       )}
 
-      {addSkillSubject && (
+      {isSuperAdmin && addSkillSubject && (
         <AddSkillModal
           subject={
             addSkillSubject
@@ -255,8 +265,9 @@ export default function SubjectsSkillsManager({
         />
       )}
 
-      {manageSubject && (
-        <ManageSubjectModal
+      {isSuperAdmin && manageSubject && (
+        <div hidden={!!manageSkill || !!addSkillSubject}>
+        <ManageSubjectModal canDelete={isSuperAdmin}
           subject={
             manageSubject
           }
@@ -277,37 +288,27 @@ export default function SubjectsSkillsManager({
             );
             refresh();
           }}
-          onAddSkill={() => {
-            const subject =
-              manageSubject;
-
-            setManageSubject(
-              null
-            );
-
-            setAddSkillSubject(
-              subject
-            );
+          onAddSkill={(name) => {
+            setDraftSubjectName(name);
+            setAddSkillSubject({...manageSubject, name});
           }}
-          onManageSkill={(
-            skill
-          ) => {
-            setManageSubject(
-              null
-            );
-
-            setManageSkill(
-              skill
-            );
+          onManageSkill={(skill, name) => {
+            setDraftSubjectName(name);
+            setManageSkill(skill);
           }}
         />
+        </div>
       )}
 
-      {manageSkill && (
-        <ManageSkillModal
+      {isSuperAdmin && manageSkill && (
+        <ManageSkillModal canDelete={isSuperAdmin}
           skill={manageSkill}
+          games={games}
+          subjectNameUnsaved={!!manageSubject && draftSubjectName !== manageSubject.name}
           subject={
-            subjects.find(
+            manageSubject && draftSubjectName !== null
+              ? {...manageSubject, name: draftSubjectName}
+              : subjects.find(
               (subject) =>
                 subject.id ===
                 manageSkill.subject_id
@@ -326,192 +327,35 @@ export default function SubjectsSkillsManager({
   );
 }
 
-function SubjectCard({
-  subject,
-  skills,
-  games,
-  onManage,
-  onAddSkill,
-  onManageSkill,
-}: {
-  subject: SubjectRow;
-  skills: SkillRow[];
-  games: GameRow[];
-  onManage: () => void;
-  onAddSkill: () => void;
-  onManageSkill: (
-    skill: SkillRow
-  ) => void;
+function SubjectCard({ canManage, subject, skills, games, onManage, onAddSkill, onManageSkill }: {
+  canManage: boolean; subject: SubjectRow; skills: SkillRow[]; games: GameRow[];
+  onManage: () => void; onAddSkill: () => void; onManageSkill: (skill: SkillRow) => void;
 }) {
-  const subjectGames =
-    games.filter(
-      (game) =>
-        game.subject_id ===
-        subject.id
-    );
-
-  return (
-    <article className="overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:border-[#D5DBE8] hover:shadow-md">
-      <div className="border-b border-[#E8ECF4] px-6 py-5">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EEF0FF] text-[#6366F1]">
-            <BookIcon />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-[#172033]">
-                {subject.name}
-              </h2>
-
-              <StatusBadge
-                active={
-                  subject.is_active
-                }
-              />
-            </div>
-
-            <p className="mt-1 min-h-5 text-sm text-[#667085]">
-              {subject.description ||
-                "Organize related games and skills."}
-            </p>
-
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-[#98A2B3]">
-              <span>
-                {skills.length}{" "}
-                {skills.length === 1
-                  ? "skill"
-                  : "skills"}
-              </span>
-
-              <span className="h-1 w-1 rounded-full bg-[#CBD5E1]" />
-
-              <span>
-                {subjectGames.length}{" "}
-                {subjectGames.length ===
-                1
-                  ? "game"
-                  : "games"}
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onManage}
-            className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg border border-[#D8DEEA] bg-white px-3 py-2 text-xs font-semibold text-[#475467] transition hover:border-[#C8D0DF] hover:bg-[#F8FAFC]"
-          ><ActionIcon name="next" />
-            Manage
-          </button>
-        </div>
+  const [viewing, setViewing] = useState(false);
+  const [query, setQuery] = useState("");
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (viewing) dialog.current?.showModal(); }, [viewing]);
+  const shown = skills.filter(skill => `${skill.name} ${skill.description || ""}`.toLowerCase().includes(query.toLowerCase()));
+  return <>
+    <article className="overview-card !h-[420px] overflow-hidden rounded-2xl border border-[#E3E8F2] bg-white shadow-sm transition hover:border-[#C7D2FE] hover:shadow-md">
+      <div className="border-b border-[#E8ECF4] p-5">
+        <div className="flex items-start gap-3"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EEF0FF] text-[#6366F1]"><BookIcon /></span><div className="min-w-0 flex-1"><h2 title={subject.name} className="line-clamp-2 h-12 text-lg font-bold leading-6 text-[#172033]">{subject.name}</h2><p className="mt-1 line-clamp-1 text-sm text-[#667085]">{subject.description || "Organize related games and skills."}</p><p className="mt-2 text-xs text-[#667085]">{skills.length} skills · {games.filter(game => hasGameSubject(game, subject.id)).length} games</p></div>{canManage && <button type="button" onClick={onManage} className="shrink-0 rounded-lg bg-[#EEF0FF] px-3 py-2 text-xs font-semibold text-[#4F46E5]">Manage</button>}</div>
       </div>
-
-      <div className="px-6 py-5">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-bold text-[#344054]">
-              Skills
-            </p>
-
-            <p className="mt-0.5 text-xs text-[#98A2B3]">
-              Game groupings inside{" "}
-              {subject.name}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onAddSkill}
-            disabled={
-              !subject.is_active
-            }
-            className={addButtonClass}
-          >
-            <PlusIcon />
-            Add Skill
-          </button>
-        </div>
-
-        {skills.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[#D8DEEA] bg-[#FAFBFD] px-5 py-7 text-center">
-            <p className="text-sm font-semibold text-[#667085]">
-              No skills yet
-            </p>
-
-            <p className="mt-1 text-xs text-[#98A2B3]">
-              Add the first skill
-              for this subject.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {skills.map(
-              (skill) => {
-                const gameCount =
-                  games.filter(
-                    (game) =>
-                      game.skill_id ===
-                      skill.id
-                  ).length;
-
-                return (
-                  <button
-                    key={skill.id}
-                    type="button"
-                    onClick={() =>
-                      onManageSkill(
-                        skill
-                      )
-                    }
-                    className="flex w-full items-center gap-3 rounded-xl border border-[#EDF0F5] bg-[#FAFBFD] px-4 py-3 text-left transition hover:border-[#D8DEEA] hover:bg-white"
-                  >
-                    <span
-                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                        skill.is_active
-                          ? "bg-[#818CF8]"
-                          : "bg-[#CBD5E1]"
-                      }`}
-                    />
-
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={`truncate text-sm font-semibold ${
-                          skill.is_active
-                            ? "text-[#344054]"
-                            : "text-[#98A2B3]"
-                        }`}
-                      >
-                        {skill.name}
-                      </p>
-
-                      {skill.description && (
-                        <p className="mt-0.5 truncate text-xs text-[#98A2B3]">
-                          {
-                            skill.description
-                          }
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-[#667085] shadow-sm ring-1 ring-[#E8ECF4]">
-                      {gameCount}{" "}
-                      {gameCount === 1
-                        ? "game"
-                        : "games"}
-                    </div>
-
-                    <ChevronRightIcon />
-                  </button>
-                );
-              }
-            )}
-          </div>
-        )}
+      <div className="flex min-h-0 flex-1 flex-col p-5">
+        <div className="mb-3 flex items-center justify-between gap-3"><h3 className="text-sm font-semibold text-[#344054]">Skills</h3>{canManage && <button type="button" onClick={onAddSkill} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#EEF0FF] px-3 text-xs font-semibold text-[#4F46E5]"><PlusIcon />Add Skill</button>}</div>
+        <ul className="space-y-2">{skills.slice(0,3).map(skill => <li key={skill.id}><button type="button" onClick={() => {if(canManage) onManageSkill(skill);else {setQuery(skill.name);setViewing(true);}}} className="flex h-11 w-full items-center gap-2 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] px-3 text-left hover:bg-[#EEF0FF]"><span className={"h-2 w-2 shrink-0 rounded-full " + (skill.is_active ? "bg-[#818CF8]" : "bg-[#CBD5E1]")} /><span className="min-w-0 flex-1 truncate text-sm font-medium text-[#344054]">{skill.name}</span><span className="shrink-0 text-xs text-[#667085]">{games.filter(game => hasGameSkill(game,skill.id)).length} games</span><ChevronRightIcon /></button></li>)}</ul>
+        {!skills.length && <p className="rounded-xl border border-dashed border-[#D8DEEA] py-8 text-center text-sm text-[#667085]">No skills yet</p>}
+        <button type="button" onClick={() => {setQuery(""); setViewing(true);}} className="mt-auto inline-flex min-h-10 items-center justify-center gap-2 pt-3 text-sm font-semibold text-[#4F46E5]">View all {skills.length} skills <ChevronRightIcon /></button>
       </div>
-    </article>
-  );
+    </article>    <dialog ref={dialog} onClose={() => setViewing(false)} aria-label={`Skills in ${subject.name}`} className="m-auto max-h-[85dvh] w-[min(720px,calc(100vw-32px))] overflow-y-auto rounded-2xl border border-[#E3E8F2] bg-white p-5 text-[#172033] shadow-xl">
+      <div className="flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="break-words text-xl font-bold">{subject.name}</h2><p className="mt-1 text-sm text-[#667085]">{skills.length} skills</p></div><button type="button" aria-label="Close skill list" className="shrink-0 rounded-lg p-2 hover:bg-[#F8FAFC]" onClick={() => dialog.current?.close()}><CloseIcon /></button></div>
+      {subject.description && <p className="mt-4 whitespace-pre-wrap break-words text-sm text-[#667085]">{subject.description}</p>}
+      <input aria-label="Search this subject's skills" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search skills..." className={inputClass + " my-4"} />
+      <ul className="divide-y divide-[#E8ECF4]">{shown.map(skill => <li key={skill.id} className="py-4"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><h3 className="break-words font-semibold">{skill.name}</h3><p className="mt-1 text-xs text-[#667085]">{skill.is_active ? "Active" : "Inactive"} · {games.filter(game => hasGameSkill(game, skill.id)).length} games</p></div>{canManage && <button type="button" onClick={() => {dialog.current?.close(); onManageSkill(skill);}} className="shrink-0 rounded-lg bg-[#EEF0FF] px-3 py-2 text-sm font-semibold text-[#4F46E5]">Manage</button>}</div>{skill.description && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-[#667085]">{skill.description}</p>}</li>)}</ul>
+      {!shown.length && <p className="py-8 text-center text-sm text-[#667085]">{skills.length ? "No matching skills." : "No skills added yet."}</p>}
+    </dialog>
+  </>;
 }
-
 function AddSubjectModal({
   onClose,
   onSaved,
@@ -581,6 +425,7 @@ function AddSubjectModal({
         );
       }
 
+      showToast({ type: "success", message: "Subject created." });
       onSaved();
     } catch (error) {
       setError(
@@ -712,6 +557,7 @@ function AddSkillModal({
         );
       }
 
+      showToast({ type: "success", message: "Skill created." });
       onSaved();
     } catch (error) {
       setError(
@@ -775,6 +621,7 @@ function AddSkillModal({
 }
 
 function ManageSubjectModal({
+  canDelete,
   subject,
   skills,
   games,
@@ -783,14 +630,15 @@ function ManageSubjectModal({
   onAddSkill,
   onManageSkill,
 }: {
+  canDelete: boolean;
   subject: SubjectRow;
   skills: SkillRow[];
   games: GameRow[];
   onClose: () => void;
   onSaved: () => void;
-  onAddSkill: () => void;
+  onAddSkill: (name: string) => void;
   onManageSkill: (
-    skill: SkillRow
+    skill: SkillRow, name: string
   ) => void;
 }) {
   const [name, setName] =
@@ -803,12 +651,7 @@ function ManageSubjectModal({
     subject.description || ""
   );
 
-  const [
-    isActive,
-    setIsActive,
-  ] = useState(
-    subject.is_active
-  );
+
 
   const [error, setError] =
     useState("");
@@ -850,7 +693,7 @@ function ManageSubjectModal({
               name: name.trim(),
               description:
                 description.trim(),
-              isActive,
+              isActive: true,
             }),
           }
         );
@@ -865,6 +708,7 @@ function ManageSubjectModal({
         );
       }
 
+      showToast({ type: "success", message: "Subject updated." });
       onSaved();
     } catch (error) {
       setError(
@@ -881,8 +725,7 @@ function ManageSubjectModal({
   const subjectGameCount =
     games.filter(
       (game) =>
-        game.subject_id ===
-        subject.id
+        hasGameSubject(game,subject.id)
     ).length;
 
   return (
@@ -907,14 +750,7 @@ function ManageSubjectModal({
             disabled={saving}
           />
 
-          <StatusControl
-            label="Subject Status"
-            active={isActive}
-            onChange={
-              setIsActive
-            }
-            disabled={saving}
-          />
+
         </div>
 
         <DescriptionField
@@ -929,7 +765,7 @@ function ManageSubjectModal({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-bold text-[#344054]">
-                Skills
+                Skills in {name.trim() || subject.name}
               </p>
 
               <p className="mt-1 text-xs text-[#98A2B3]">
@@ -950,11 +786,8 @@ function ManageSubjectModal({
 
             <button
               type="button"
-              onClick={onAddSkill}
-              disabled={
-                saving ||
-                !isActive
-              }
+              onClick={() => onAddSkill(name.trim() || subject.name)}
+              disabled={saving}
               className={addButtonClass}
             >
               <PlusIcon />
@@ -974,8 +807,7 @@ function ManageSubjectModal({
                   const count =
                     games.filter(
                       (game) =>
-                        game.skill_id ===
-                        skill.id
+                        hasGameSkill(game,skill.id)
                     ).length;
 
                   return (
@@ -986,13 +818,13 @@ function ManageSubjectModal({
                       type="button"
                       onClick={() =>
                         onManageSkill(
-                          skill
+                          skill, name.trim() || subject.name
                         )
                       }
                       disabled={
                         saving
                       }
-                      className="flex w-full items-center gap-3 rounded-lg border border-[#E8ECF4] bg-white px-4 py-3 text-left transition hover:border-[#C7CCFF] disabled:opacity-50"
+                      className="flex w-full items-center gap-3 rounded-lg border border-[#E8ECF4] bg-[#EEF0FF] px-4 py-3 text-left transition hover:border-[#C7CCFF] disabled:opacity-50"
                     >
                       <span
                         className={`h-2.5 w-2.5 rounded-full ${
@@ -1022,16 +854,7 @@ function ManageSubjectModal({
           </div>
         </div>
 
-        {!isActive &&
-          subject.is_active && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-800">
-              Deactivating this
-              subject will also
-              deactivate its current
-              skills. Existing games
-              will not be deleted.
-            </div>
-          )}
+
 
         {error && (
           <ErrorMessage>
@@ -1040,6 +863,7 @@ function ManageSubjectModal({
         )}
 
         <ModalActions
+          leading={canDelete ? <DeleteClassification affectedGames={subjectGameCount} kind="subjects" id={subject.id} name={subject.name} disabled={saving} onDeleted={onSaved} /> : undefined}
           onCancel={onClose}
           saving={saving}
           submitLabel="Save Changes"
@@ -1051,13 +875,19 @@ function ManageSubjectModal({
 }
 
 function ManageSkillModal({
+  canDelete,
+  games,
   skill,
   subject,
+  subjectNameUnsaved = false,
   onClose,
   onSaved,
 }: {
+  canDelete: boolean;
+  games: GameRow[];
   skill: SkillRow;
   subject: SubjectRow | null;
+  subjectNameUnsaved?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -1071,12 +901,7 @@ function ManageSkillModal({
     skill.description || ""
   );
 
-  const [
-    isActive,
-    setIsActive,
-  ] = useState(
-    skill.is_active
-  );
+
 
   const [error, setError] =
     useState("");
@@ -1118,7 +943,7 @@ function ManageSkillModal({
               name: name.trim(),
               description:
                 description.trim(),
-              isActive,
+              isActive: true,
             }),
           }
         );
@@ -1133,6 +958,7 @@ function ManageSkillModal({
         );
       }
 
+      showToast({ type: "success", message: "Skill updated." });
       onSaved();
     } catch (error) {
       setError(
@@ -1149,7 +975,7 @@ function ManageSkillModal({
   return (
     <ModalShell
       title="Manage Skill"
-      description="Edit the skill details and availability."
+      description="Edit this skill and its description."
       onClose={onClose}
       disabled={saving}
     >
@@ -1159,6 +985,7 @@ function ManageSkillModal({
         />
       )}
 
+      {subjectNameUnsaved && <p className="mb-4 text-sm text-amber-700">This subject name is unsaved. Return to Manage Subject and save its changes to make the name permanent.</p>}
       <form
         onSubmit={handleSubmit}
         className="stack-layout"
@@ -1181,27 +1008,9 @@ function ManageSkillModal({
           disabled={saving}
         />
 
-        <StatusControl
-          label="Skill Status"
-          active={isActive}
-          onChange={
-            setIsActive
-          }
-          disabled={
-            saving ||
-            !subject?.is_active
-          }
-        />
 
-        {subject &&
-          !subject.is_active && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              This subject is
-              inactive. Activate the
-              subject before
-              activating this skill.
-            </div>
-          )}
+
+
 
         {error && (
           <ErrorMessage>
@@ -1210,6 +1019,7 @@ function ManageSkillModal({
         )}
 
         <ModalActions
+          leading={canDelete ? <DeleteClassification affectedGames={games.filter(game => hasGameSkill(game,skill.id)).length} kind="skills" id={skill.id} name={skill.name} disabled={saving} onDeleted={onSaved} /> : undefined}
           onCancel={onClose}
           saving={saving}
           submitLabel="Save Changes"
@@ -1319,66 +1129,7 @@ function DescriptionField({
   );
 }
 
-function StatusControl({
-  label,
-  active,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  active: boolean;
-  onChange: (
-    value: boolean
-  ) => void;
-  disabled: boolean;
-}) {
-  return (
-    <Field>
-      <FieldLabel>
-        {label}
-      </FieldLabel>
 
-      <button
-        type="button"
-        onClick={() =>
-          onChange(!active)
-        }
-        disabled={disabled}
-        className="flex h-12 w-full items-center justify-between rounded-xl border border-[#D8DEEA] bg-white px-4 text-left transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-60"
-      ><ActionIcon name="check" />
-        <div>
-          <p className="text-sm font-semibold text-[#344054]">
-            {active
-              ? "Active"
-              : "Inactive"}
-          </p>
-
-          <p className="text-xs text-[#98A2B3]">
-            {active
-              ? "Available for use"
-              : "Not available for new games"}
-          </p>
-        </div>
-
-        <span
-          className={`relative h-6 w-11 rounded-full transition ${
-            active
-              ? "bg-[#6366F1]"
-              : "bg-[#CBD5E1]"
-          }`}
-        >
-          <span
-            className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
-              active
-                ? "left-6"
-                : "left-1"
-            }`}
-          />
-        </span>
-      </button>
-    </Field>
-  );
-}
 
 function ModalShell({
   title,
@@ -1446,24 +1197,28 @@ function ModalShell({
 }
 
 function ModalActions({
+  leading,
   onCancel,
   saving,
   submitLabel,
   showPlus = true,
 }: {
+  leading?: React.ReactNode;
   onCancel: () => void;
   saving: boolean;
   submitLabel: string;
   showPlus?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-3 border-t border-[#E8ECF4] pt-5">
+    <div className="flex flex-wrap items-start justify-between gap-3 border-t border-[#E8ECF4] pt-5">
+      {leading && <div className="min-w-0 sm:flex-1">{leading}</div>}
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-3">
       <button
         type="button"
         onClick={onCancel}
         disabled={saving}
-        className="inline-flex items-center justify-center gap-2 h-11 rounded-xl border border-[#D8DEEA] bg-white px-5 text-sm font-semibold text-[#475467] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
-      ><ActionIcon name="close" />
+        className="inline-flex h-11 items-center justify-center rounded-xl border border-[#D8DEEA] bg-white px-5 text-sm font-semibold text-[#344054] transition hover:bg-[#F8FAFC] disabled:cursor-not-allowed disabled:opacity-50"
+      >
         Cancel
       </button>
 
@@ -1484,6 +1239,7 @@ function ModalActions({
           </>
         )}
       </button>
+      </div>
     </div>
   );
 }
@@ -1520,25 +1276,7 @@ function FieldLabel({
   );
 }
 
-function StatusBadge({
-  active,
-}: {
-  active: boolean;
-}) {
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-        active
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-slate-100 text-slate-500"
-      }`}
-    >
-      {active
-        ? "Active"
-        : "Inactive"}
-    </span>
-  );
-}
+
 
 function ErrorMessage({
   children,
@@ -1546,15 +1284,15 @@ function ErrorMessage({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-      {children}
-    </div>
+    <Notification type="error" message={String(children)} />
   );
 }
 
 function EmptyState({
+  canManage,
   onAddSubject,
 }: {
+  canManage: boolean;
   onAddSubject: () => void;
 }) {
   return (
@@ -1576,13 +1314,13 @@ function EmptyState({
       </p>
 
       <div className="mt-layout flex justify-center">
-        <PrimaryAddButton
+        {canManage && (<PrimaryAddButton
           onClick={
             onAddSubject
           }
         >
           Add Subject
-        </PrimaryAddButton>
+        </PrimaryAddButton>)}
       </div>
     </div>
   );
@@ -1645,7 +1383,7 @@ function SearchIcon({
 
 function ChevronRightIcon() { return <ActionIcon name="next" />; }
 
-function CloseIcon() { return <ActionIcon name="close" />; }
+function CloseIcon() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg>; }
 
 function Spinner() {
   return (
@@ -1673,4 +1411,15 @@ function Spinner() {
       />
     </svg>
   );
+}
+function DeleteClassification({kind,id,name,affectedGames,disabled,onDeleted}:{kind:"subjects"|"skills";id:string;name:string;affectedGames:number;disabled:boolean;onDeleted:()=>void}) {
+ const [confirming,setConfirming]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[count,setCount]=useState(affectedGames);
+ const label=kind==="subjects"?"Subject":"Skill";
+ async function remove(confirmed=false){if(busy)return;setBusy(true);setError("");try{const response=await fetch("/api/admin/"+kind+"/"+id+(confirmed?"?confirm=true":""),{method:"DELETE"});const result=await response.json();if(result.requires_confirmation){setCount(result.affected_games);setConfirming(true);return;}if(!response.ok)throw Error(result.error||"Unable to delete.");showToast({type:"success",message:label+" deleted."});onDeleted();}catch(e){setError(getErrorMessage(e,"Unable to delete."));}finally{setBusy(false);}}
+ return <div className="space-y-3">
+ <button type="button" disabled={disabled||busy} onClick={()=>{if(affectedGames>0){setCount(affectedGames);setConfirming(true);}else void remove();}} className="inline-flex h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><ActionIcon name="delete" />{busy?"Deleting...":"Delete "+label}</button>
+ {!confirming&&error&&<ErrorMessage>{error}</ErrorMessage>}
+ {confirming&&<div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/25 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby={"delete-"+id} onMouseDown={event=>{if(!busy&&event.target===event.currentTarget)setConfirming(false);}}>
+ <div className="w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-xl"><div className="p-6"><div className="flex items-start gap-4"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600"><ActionIcon name="delete" /></div><div className="flex-1"><h3 id={"delete-"+id} className="text-lg font-bold text-[#172033]">Delete this {label.toLowerCase()}?</h3><p className="mt-2 text-sm text-[#667085]">Permanently delete <strong>{name}</strong>?</p></div><button type="button" disabled={busy} aria-label="Close deletion confirmation" onClick={()=>setConfirming(false)} className="rounded-lg p-2 text-[#667085] hover:bg-[#F8FAFC]"><CloseIcon /></button></div><p className="mt-5 rounded-xl border border-[#E8ECF4] bg-[#F8FAFC] p-4 text-sm leading-6 text-[#667085]">{count} game{count===1?"":"s"} will lose the removed skill assignments. Games with other skills stay assigned; those with no skills left appear first in Games Management for reassignment. {kind==="subjects"?"This subject and its skills will be removed. ":"This skill will be removed. "}Game files, Learning Paths, student attempts, scores, and history will be preserved.</p>{error&&<div className="mt-3"><ErrorMessage>{error}</ErrorMessage></div>}</div><div className="flex justify-end gap-3 border-t border-[#E8ECF4] bg-[#FAFBFD] px-6 py-4"><button type="button" disabled={busy} onClick={()=>setConfirming(false)} className="h-10 rounded-xl border border-[#D8DEEA] bg-white px-4 text-sm font-semibold text-[#344054]">Cancel</button><button type="button" disabled={busy} onClick={()=>void remove(true)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-50"><ActionIcon name="delete" />{busy?"Deleting...":"Delete "+label}</button></div></div></div>}
+ </div>;
 }
